@@ -19,26 +19,23 @@ export function EmergencyModal() {
     setProgress(0);
   }, []);
 
-  const tick = useCallback(
-    (now: number) => {
+  const startHold = useCallback(() => {
+    if (rafRef.current) return;
+    startRef.current = null;
+    // Local self-referencing loop (not a hook) drives the hold-to-close ring.
+    const step = (now: number) => {
       if (startRef.current === null) startRef.current = now;
-      const elapsed = now - startRef.current;
-      const pct = Math.min(elapsed / HOLD_MS, 1);
+      const pct = Math.min((now - startRef.current) / HOLD_MS, 1);
       setProgress(pct);
       if (pct >= 1) {
         stopHold();
         close();
         return;
       }
-      rafRef.current = requestAnimationFrame(tick);
-    },
-    [close, stopHold]
-  );
-
-  const startHold = useCallback(() => {
-    if (rafRef.current) return;
-    rafRef.current = requestAnimationFrame(tick);
-  }, [tick]);
+      rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+  }, [close, stopHold]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -61,7 +58,7 @@ export function EmergencyModal() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/95 px-6 text-center backdrop-blur-xl dark:bg-zinc-950/95"
+          className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-[var(--bg)]/95 px-6 text-center backdrop-blur-xl"
         >
           <motion.div
             aria-hidden
@@ -71,7 +68,7 @@ export function EmergencyModal() {
           />
           <motion.div
             aria-hidden
-            className="absolute flex h-44 w-44 items-center justify-center rounded-full border border-zinc-200 bg-white/60 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/60"
+            className="absolute flex h-44 w-44 items-center justify-center rounded-full border border-stone-200 bg-white/60 text-sm text-stone-500 dark:border-stone-800 dark:bg-stone-900/60"
             animate={{ scale: [0.9, 1.1, 0.9] }}
             transition={{ duration: 8, ease: "easeInOut", repeat: Infinity }}
           >
@@ -84,17 +81,17 @@ export function EmergencyModal() {
           </motion.div>
 
           <div className="relative z-10 max-w-md space-y-6">
-            <p className="text-2xl font-medium tracking-tight text-zinc-900 dark:text-zinc-100">
+            <p className="text-2xl font-medium tracking-tight text-stone-900 dark:text-stone-100">
               Pause. You are probably overthinking this.
             </p>
 
             <figure className="space-y-2">
-              <blockquote className="text-lg leading-relaxed text-zinc-600 dark:text-zinc-300">
+              <blockquote className="text-lg leading-relaxed text-stone-600 dark:text-stone-300">
                 Take therefore no thought for the morrow: for the morrow shall
                 take thought for the things of itself. Sufficient unto the day is
                 the evil thereof.
               </blockquote>
-              <figcaption className="text-sm text-zinc-400">
+              <figcaption className="text-sm text-stone-400">
                 Matthew 6:34 (KJV)
               </figcaption>
             </figure>
@@ -113,7 +110,7 @@ export function EmergencyModal() {
                 }}
                 onKeyUp={stopHold}
                 aria-label="Hold to close. I'm okay now."
-                className="relative w-full select-none overflow-hidden rounded-full border border-zinc-300 px-6 py-3.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-zinc-300/40 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                className="relative w-full select-none overflow-hidden rounded-full border border-stone-300 px-6 py-3.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-stone-300/40 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-900"
               >
                 <span
                   aria-hidden
@@ -125,7 +122,7 @@ export function EmergencyModal() {
                 </span>
               </button>
 
-              <p className="mt-4 text-xs leading-relaxed text-zinc-400">
+              <p className="mt-4 text-xs leading-relaxed text-stone-400">
                 If this is heavier than overthinking and you might be in danger,
                 please reach out to a trusted person or your local crisis line.
               </p>

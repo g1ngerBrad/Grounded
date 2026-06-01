@@ -1,0 +1,16 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Grounded">
+  <defs>
+    <linearGradient id="leaf" x1="128" y1="80" x2="384" y2="360" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#34d399"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <!-- canopy: three soft overlapping circles -->
+  <circle cx="256" cy="180" r="96" fill="url(#leaf)"/>
+  <circle cx="180" cy="232" r="76" fill="url(#leaf)"/>
+  <circle cx="332" cy="232" r="76" fill="url(#leaf)"/>
+  <!-- trunk -->
+  <rect x="240" y="236" width="32" height="160" rx="16" fill="#92400e"/>
+  <!-- roots / ground line -->
+  <path d="M168 404c40-28 64-28 88-28s48 0 88 28" stroke="#92400e" stroke-width="22" stroke-linecap="round" fill="none"/>
+</svg>
