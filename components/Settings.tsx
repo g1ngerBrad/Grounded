@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTheme } from "next-themes";
 import { Settings as SettingsIcon, Sun, Moon, Monitor, X, Check, Eye, EyeOff } from "lucide-react";
 import { getGroqKey, setGroqKey } from "@/lib/settings";
@@ -41,9 +42,9 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
     };
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-stone-900/30 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-stone-900/30 p-4 backdrop-blur-sm sm:p-6"
       onClick={onClose}
     >
       <div
@@ -51,7 +52,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         aria-modal="true"
         aria-label="Settings"
         onClick={(e) => e.stopPropagation()}
-        className="animate-rise w-full max-w-md rounded-t-3xl border border-stone-200 bg-[var(--bg)] p-6 shadow-xl dark:border-stone-800 sm:rounded-3xl"
+        className="animate-rise my-auto w-full max-w-md rounded-3xl border border-stone-200 bg-[var(--bg)] p-6 shadow-xl dark:border-stone-800"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold tracking-tight">Settings</h2>
@@ -70,7 +71,8 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
           <GroqKeyField />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -142,9 +144,6 @@ function GroqKeyField() {
       <label htmlFor="groq-key" className="text-sm font-medium text-stone-700 dark:text-stone-300">
         Groq API key
       </label>
-      <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-        Optional. Stored only on this device and used for the reflection steps. Leave blank to use the server default.
-      </p>
       <div className="mt-2 flex gap-2">
         <div className="relative flex-1">
           <input
