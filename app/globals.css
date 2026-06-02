@@ -2,8 +2,23 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Calm, joyful, minimal palette — warm light + deep restful dark. */
 :root {
   color-scheme: light dark;
+  --bg: #fbfaf7; /* warm paper white */
+  --fg: #1c1917; /* stone-900 */
+  /* soft colour splashes for the ambient background */
+  --blob-a: rgba(52, 211, 153, 0.18); /* emerald */
+  --blob-b: rgba(125, 211, 252, 0.16); /* sky */
+  --blob-c: rgba(253, 186, 116, 0.14); /* amber */
+}
+
+.dark {
+  --bg: #0c0a09; /* stone-950 */
+  --fg: #f5f5f4; /* stone-100 */
+  --blob-a: rgba(16, 185, 129, 0.16);
+  --blob-b: rgba(56, 189, 248, 0.12);
+  --blob-c: rgba(251, 146, 60, 0.1);
 }
 
 html,
@@ -12,8 +27,23 @@ body {
 }
 
 body {
+  background-color: var(--bg);
+  color: var(--fg);
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Ambient, fixed colour splashes behind everything — calm and joyful. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(40rem 40rem at 12% -8%, var(--blob-a), transparent 60%),
+    radial-gradient(36rem 36rem at 92% 4%, var(--blob-b), transparent 60%),
+    radial-gradient(34rem 34rem at 50% 108%, var(--blob-c), transparent 60%);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -24,4 +54,20 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* Gentle entrance used by step/card content. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

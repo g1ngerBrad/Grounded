@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
+import { fetchVerse, type Verse } from "@/lib/bible";
 
 export const runtime = "nodejs";
 
@@ -35,9 +36,14 @@ Respond ONLY with valid JSON, no markdown, matching:
 };
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.GROQ_API_KEY;
+  // Prefer a user-supplied key (kept in their browser, sent per-request and
+  // never stored or logged here); fall back to the server's env var.
+  const apiKey = req.headers.get("x-groq-key")?.trim() || process.env.GROQ_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: "Server is not configured." }, { status: 500 });
+    return NextResponse.json(
+      { error: "No Groq API key. Add one in Settings, or configure the server." },
+      { status: 401 }
+    );
   }
 
   let body: unknown;
@@ -87,7 +93,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ type, data: parsed });
+    // Replace the model's (potentially imprecise) verse text with the exact
+    // wording from API.Bible, looked up by the reference it chose. Falls back
+    // to the model's text if API.Bible is unconfigured or the lookup fails.
+    const data = parsed as { verse?: Verse };
+    if (data.verse?.reference) {
+      const accurate = await fetchVerse(data.verse.reference);
+      if (accurate) data.verse = accurate;
+    }
+
+    return NextResponse.json({ type, data });
   } catch (err) {
     console.error("Groq request failed:", err);
     return NextResponse.json(
