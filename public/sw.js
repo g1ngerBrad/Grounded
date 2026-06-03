@@ -1,8 +1,6 @@
-// Grounded service worker — enables installable PWA + basic offline support.
 const CACHE = "grounded-v2";
 const PRECACHE = ["/", "/history", "/manifest.webmanifest", "/icon.svg"];
 
-// Install: pre-cache the app shell (best-effort — never block install on a miss).
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) =>
@@ -12,7 +10,6 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activate: drop old caches and take control of open pages.
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
@@ -24,10 +21,6 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Fetch strategy:
-//  - Navigations: network-first, fall back to cached shell when offline.
-//  - GET assets: stale-while-revalidate.
-//  - Never cache API calls or non-GET requests.
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;

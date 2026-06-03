@@ -1,13 +1,4 @@
-// Fetches real scripture text from API.Bible (https://scripture.api.bible).
-// Used server-side so the API key never reaches the client.
-//
-// Configure with environment variables:
-//   BIBLE_API_KEY  — your API.Bible key (required for live verses)
-//   BIBLE_ID       — bible id to read from (defaults to public-domain KJV)
-//   BIBLE_NAME     — short label shown to users (defaults to "KJV")
-
 const API_BASE = "https://api.scripture.api.bible/v1";
-// Public-domain King James Version — a safe default that needs no licensing.
 const DEFAULT_BIBLE_ID = "de4e12af7f28f599-02";
 
 export type Verse = { reference: string; text: string; translation: string };
@@ -15,15 +6,10 @@ export type Verse = { reference: string; text: string; translation: string };
 const stripHtml = (html: string) =>
   html
     .replace(/<[^>]+>/g, " ")
-    .replace(/\[\d+\]/g, "") // verse-number markers
+    .replace(/\[\d+\]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 
-/**
- * Look up a verse/passage by human reference (e.g. "Philippians 4:6-7").
- * Returns null when the API is not configured or the lookup fails, so callers
- * can fall back to whatever text they already have.
- */
 export async function fetchVerse(reference: string): Promise<Verse | null> {
   const apiKey = process.env.BIBLE_API_KEY;
   const ref = reference?.trim();
@@ -38,7 +24,6 @@ export async function fetchVerse(reference: string): Promise<Verse | null> {
   try {
     const res = await fetch(url, {
       headers: { "api-key": apiKey },
-      // Verses are immutable — cache aggressively at the edge.
       next: { revalidate: 60 * 60 * 24 * 30 },
     });
     if (!res.ok) return null;

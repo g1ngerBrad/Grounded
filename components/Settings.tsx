@@ -89,12 +89,11 @@ function ThemeSelector() {
     <div>
       <label className="text-sm font-medium text-stone-700 dark:text-stone-300">Appearance</label>
       <div className="relative mt-2 grid grid-cols-3 gap-1 rounded-full bg-stone-100 p-1 dark:bg-stone-800/70">
-        {/* Sliding highlight that animates between options on click. */}
         <span
           aria-hidden
           className="absolute inset-y-1 left-1 rounded-full bg-white shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] dark:bg-stone-950"
           style={{
-            width: "calc((100% - 0.5rem) / 3)",
+            width: "calc((100% - 1rem) / 3)",
             transform: `translateX(calc(${index} * (100% + 0.25rem)))`,
           }}
         />
@@ -154,7 +153,7 @@ function GroqKeyField() {
             placeholder="gsk_…"
             autoComplete="off"
             spellCheck={false}
-            className="w-full rounded-xl border border-stone-200 bg-white/70 py-2.5 pl-3 pr-10 text-sm outline-none transition-colors placeholder:text-stone-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 dark:border-stone-800 dark:bg-stone-900/50 dark:focus:border-emerald-500 dark:focus:ring-emerald-950/40"
+            className="w-full rounded-xl border border-stone-200 bg-white/70 py-2.5 pl-3 pr-10 text-base outline-none transition-colors placeholder:text-stone-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 sm:text-sm dark:border-stone-800 dark:bg-stone-900/50 dark:focus:border-emerald-500 dark:focus:ring-emerald-950/40"
           />
           <button
             type="button"

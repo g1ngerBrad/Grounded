@@ -9,8 +9,6 @@ import { getGroqKey } from "@/lib/settings";
 import { useJourneyProgress } from "@/app/providers";
 import type { FactsResult, DecisionResult, Reflection, StepKey } from "@/lib/types";
 
-// Keys for remembering the in-progress journey across an in-app navigation
-// (e.g. popping over to History and back), so we land on the same step + content.
 const RESUME_ID = "grounded:resume-id";
 const RESUME_STEP = "grounded:resume-step";
 
@@ -40,10 +38,8 @@ export function Journey() {
   const [decisionLoading, setDecisionLoading] = useState(false);
   const [factsError, setFactsError] = useState<string | null>(null);
   const [decisionError, setDecisionError] = useState<string | null>(null);
-  const [resumedAt, setResumedAt] = useState<number | null>(null);
   const [active, setActive] = useState<StepKey>("collect");
 
-  // Persist progress to local history (upsert by id) on every meaningful change.
   const persist = useCallback(
     (patch: Partial<Reflection>) => {
       if (!createdRef.current) createdRef.current = Date.now();
@@ -61,11 +57,6 @@ export function Journey() {
     [dump, facts, decision],
   );
 
-  // On mount, resume a saved journey. An explicit ?id= (a History card) wins;
-  // otherwise fall back to the in-progress journey remembered for this tab, so
-  // returning from History lands back on the same step and content. Reading
-  // storage is a one-time client-side hydration, so the cascading-render
-  // warning does not apply here.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const urlId = new URLSearchParams(window.location.search).get("id");
@@ -80,19 +71,13 @@ export function Journey() {
     setDecision(saved.decision ?? null);
     sessionStorage.setItem(RESUME_ID, saved.id);
 
-    if (urlId) {
-      // Opening a journey afresh from History — greet, and start at the top.
-      setResumedAt(saved.createdAt);
-    } else {
-      // Coming back mid-session — restore the step they were last on (no smooth
-      // scroll, so it's already in place when the page paints).
+    if (!urlId) {
       const step = sessionStorage.getItem(RESUME_STEP) as StepKey | null;
       if (step) requestAnimationFrame(() => scrollToStep(step, "auto"));
     }
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // Wipe the slate clean for a fresh journey (fired by the + button anywhere).
   const startNew = useCallback(() => {
     idRef.current = newId();
     createdRef.current = 0;
@@ -101,7 +86,6 @@ export function Journey() {
     setDecision(null);
     setFactsError(null);
     setDecisionError(null);
-    setResumedAt(null);
     setActive("collect");
     sessionStorage.removeItem(RESUME_ID);
     sessionStorage.removeItem(RESUME_STEP);
@@ -114,32 +98,21 @@ export function Journey() {
     return () => window.removeEventListener("grounded:new-journey", startNew);
   }, [startNew]);
 
-  // Turn the journey into full-height snap "pages" while it's mounted. Scoped to
-  // <html> so leaving for /history restores normal scrolling.
   useEffect(() => {
     document.documentElement.classList.add("journey-snap");
     return () => document.documentElement.classList.remove("journey-snap");
   }, []);
 
-  // Once a step holds a real result it can run taller than the viewport, so
-  // relax mandatory snapping to proximity (see globals.css) — otherwise the
-  // bottom of a long step is unreachable. Empty journeys keep the crisp snap.
   const hasContent = !!facts || !!decision;
   useEffect(() => {
     document.documentElement.classList.toggle("journey-fluid", hasContent);
     return () => document.documentElement.classList.remove("journey-fluid");
   }, [hasContent]);
 
-  // Remember the step in view so a return from History reopens it (only once a
-  // journey actually exists — a blank slate has nothing to restore).
   useEffect(() => {
     if (createdRef.current) sessionStorage.setItem(RESUME_STEP, active);
   }, [active]);
 
-  // Track which section is in view to light up the step slider. We anchor to a
-  // line near the top of the viewport and pick the last section whose top has
-  // scrolled past it. A centered band would never let the topmost step win when
-  // the whole page fits on screen, leaving it stuck on the middle step.
   useEffect(() => {
     const sections = Array.from(document.querySelectorAll("[data-step]"));
     const sync = () => {
@@ -191,7 +164,35 @@ export function Journey() {
   const doneSort = !!facts;
   const doneDecide = !!decision;
 
-  // Publish live progress to the navbar stepper; clear it when we leave.
+  const dumpRef = useRef<HTMLTextAreaElement>(null);
+  const revealCaret = useCallback(() => {
+    const ta = dumpRef.current;
+    const vv = window.visualViewport;
+    if (!ta || !vv) return;
+    const overflow = ta.getBoundingClientRect().bottom + 24 - (vv.offsetTop + vv.height);
+    if (overflow > 0) window.scrollBy({ top: overflow });
+  }, []);
+
+  const onDumpFocus = useCallback(() => {
+    document.documentElement.classList.add("keyboard-open");
+    window.visualViewport?.addEventListener("resize", revealCaret);
+    setTimeout(revealCaret, 300);
+  }, [revealCaret]);
+
+  const onDumpBlur = useCallback(() => {
+    document.documentElement.classList.remove("keyboard-open");
+    window.visualViewport?.removeEventListener("resize", revealCaret);
+    if (hasDump) persist({});
+  }, [revealCaret, hasDump, persist]);
+
+  useEffect(
+    () => () => {
+      document.documentElement.classList.remove("keyboard-open");
+      window.visualViewport?.removeEventListener("resize", revealCaret);
+    },
+    [revealCaret],
+  );
+
   const { setProgress } = useJourneyProgress();
   useEffect(() => {
     setProgress({ active, done: { collect: hasDump, sort: doneSort, decide: doneDecide } });
@@ -200,159 +201,146 @@ export function Journey() {
 
   return (
     <div>
-      <div>
-        {resumedAt && (
-          // Clear the navbar's fading blur band (8rem from the top, see
-          // globals.css) so the greeting reads crisply instead of through blur.
-          <p className="flex items-center gap-1.5 pt-14 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-            <Sparkles className="h-3.5 w-3.5" /> Picking up where you left off
-          </p>
+      <Section stepKey="collect" tint="sky" eyebrow="Step 1 · Dump">
+        <textarea
+          ref={dumpRef}
+          value={dump}
+          onChange={(e) => { setDump(e.target.value); revealCaret(); }}
+          onFocus={onDumpFocus}
+          onBlur={onDumpBlur}
+          rows={7}
+          placeholder="Everything on your mind…"
+          className="w-full resize-none rounded-2xl border border-stone-200 bg-white/70 p-4 text-stone-900 shadow-sm outline-none transition-colors placeholder:text-stone-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 dark:border-stone-800 dark:bg-stone-900/50 dark:text-stone-100 dark:focus:border-sky-500 dark:focus:ring-sky-950/40"
+        />
+        {hasDump && !facts && !factsLoading && (
+          <button
+            type="button"
+            onClick={() => {
+              runFacts();
+              requestAnimationFrame(() => scrollToStep("sort"));
+            }}
+            className="mt-4 flex items-center gap-2 rounded-full bg-sky-500 px-5 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-sky-600"
+          >
+            Break it down <ArrowRight className="h-4 w-4" />
+          </button>
         )}
+      </Section>
 
-        {/* 1 · Collect ------------------------------------------------------ */}
-        <Section stepKey="collect" tint="sky" eyebrow="Step 1 · Dump">
-          <textarea
-            value={dump}
-            onChange={(e) => setDump(e.target.value)}
-            onBlur={() => hasDump && persist({})}
-            rows={7}
-            placeholder="Everything on your mind…"
-            className="w-full resize-none rounded-2xl border border-stone-200 bg-white/70 p-4 text-stone-900 shadow-sm outline-none transition-colors placeholder:text-stone-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 dark:border-stone-800 dark:bg-stone-900/50 dark:text-stone-100 dark:focus:border-sky-500 dark:focus:ring-sky-950/40"
+      <Section stepKey="sort" tint="emerald" eyebrow="Step 2 · Sort" filled={factsLoading || !!facts}>
+        {factsLoading && <Pending label="Sorting it out…" />}
+        {factsError && <ErrorRetry message={factsError} onRetry={runFacts} />}
+        {!facts && !factsLoading && !factsError && (
+          <RunPrompt
+            disabled={!hasDump}
+            hint={hasDump ? undefined : "Collect your thoughts above first."}
+            label="Sort facts from assumptions"
+            tint="emerald"
+            onRun={runFacts}
           />
-          {hasDump && !facts && !factsLoading && (
-            <button
-              type="button"
-              onClick={() => {
-                runFacts();
-                scrollToStep("sort");
-              }}
-              className="mt-4 flex items-center gap-2 rounded-full bg-sky-500 px-5 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-sky-600"
-            >
-              Break it down <ArrowRight className="h-4 w-4" />
-            </button>
-          )}
-        </Section>
-
-        {/* 2 · Sort -------------------------------------------------------- */}
-        <Section stepKey="sort" tint="emerald" eyebrow="Step 2 · Sort" filled={factsLoading || !!facts}>
-          {factsLoading && <Pending label="Sorting it out…" />}
-          {factsError && <ErrorRetry message={factsError} onRetry={runFacts} />}
-          {!facts && !factsLoading && !factsError && (
-            <RunPrompt
-              disabled={!hasDump}
-              hint={hasDump ? undefined : "Collect your thoughts above first."}
-              label="Sort facts from assumptions"
-              tint="emerald"
-              onRun={runFacts}
-            />
-          )}
-          {facts && !factsLoading && (
-            <div className="animate-rise space-y-5">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Column
-                  title="Objective facts"
-                  tone="fact"
-                  items={facts.facts}
-                  empty="No clearly objective facts found — that itself is worth noticing."
-                />
-                <Column
-                  title="Anxious assumptions"
-                  tone="assumption"
-                  items={facts.assumptions}
-                  empty="Nothing flagged as assumption."
-                />
-              </div>
-              {facts.note && <Note>{facts.note}</Note>}
-              {facts.verse && <VerseCard verse={facts.verse} />}
-              {!decision && !decisionLoading && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    runDecision();
-                    scrollToStep("decide");
-                  }}
-                  className="flex items-center gap-2 rounded-full bg-violet-600 px-5 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-violet-700"
-                >
-                  Weigh the options <ArrowRight className="h-4 w-4" />
-                </button>
-              )}
+        )}
+        {facts && !factsLoading && (
+          <div className="animate-rise space-y-5">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Column
+                title="Objective facts"
+                tone="fact"
+                items={facts.facts}
+                empty="No clearly objective facts found — that itself is worth noticing."
+              />
+              <Column
+                title="Anxious assumptions"
+                tone="assumption"
+                items={facts.assumptions}
+                empty="Nothing flagged as assumption."
+              />
             </div>
-          )}
-        </Section>
+            {facts.note && <Note>{facts.note}</Note>}
+            {facts.verse && <VerseCard verse={facts.verse} />}
+            {!decision && !decisionLoading && (
+              <button
+                type="button"
+                onClick={() => {
+                  runDecision();
+                  requestAnimationFrame(() => scrollToStep("decide"));
+                }}
+                className="flex items-center gap-2 rounded-full bg-violet-600 px-5 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-violet-700"
+              >
+                Weigh the options <ArrowRight className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
+      </Section>
 
-        {/* 3 · Decide ------------------------------------------------------ */}
-        <Section stepKey="decide" tint="violet" eyebrow="Step 3 · Decide" filled={decisionLoading || !!decision}>
-          {decisionLoading && <Pending label="Laying it out…" />}
-          {decisionError && <ErrorRetry message={decisionError} onRetry={runDecision} />}
-          {!decision && !decisionLoading && !decisionError && (
-            <RunPrompt
-              disabled={!hasDump}
-              hint={hasDump ? undefined : "Collect your thoughts above first."}
-              label="Lay out the options"
-              tint="violet"
-              onRun={runDecision}
-            />
-          )}
-          {decision && !decisionLoading && (
-            <div className="animate-rise space-y-4">
-              {decision.options?.map((opt, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl border border-stone-200 bg-white/70 p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900/50"
-                >
-                  <h3 className="flex items-center gap-2 font-medium">
-                    <span className="grid h-6 w-6 place-items-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
-                      {i + 1}
-                    </span>
-                    {opt.name}
-                  </h3>
-                  {opt.considerations?.length > 0 && (
-                    <ul className="mt-3 space-y-1.5">
-                      {opt.considerations.map((c, j) => (
-                        <li key={j} className="flex gap-2 text-sm text-stone-600 dark:text-stone-300">
-                          <span className="text-violet-300 dark:text-violet-700">•</span>
-                          {c}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {opt.tradeoffs && (
-                    <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">
-                      <span className="font-medium text-stone-600 dark:text-stone-300">Trade-off: </span>
-                      {opt.tradeoffs}
-                    </p>
-                  )}
-                </div>
-              ))}
-
-              {decision.questions_to_pray?.length > 0 && (
-                <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-5 dark:border-amber-900/30 dark:bg-amber-950/20">
-                  <h3 className="text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">
-                    To sit with
-                  </h3>
-                  <ul className="mt-3 space-y-2">
-                    {decision.questions_to_pray.map((q, i) => (
-                      <li key={i} className="text-sm text-stone-700 dark:text-stone-200">{q}</li>
+      <Section stepKey="decide" tint="violet" eyebrow="Step 3 · Decide" filled={decisionLoading || !!decision}>
+        {decisionLoading && <Pending label="Laying it out…" />}
+        {decisionError && <ErrorRetry message={decisionError} onRetry={runDecision} />}
+        {!decision && !decisionLoading && !decisionError && (
+          <RunPrompt
+            disabled={!hasDump}
+            hint={hasDump ? undefined : "Collect your thoughts above first."}
+            label="Lay out the options"
+            tint="violet"
+            onRun={runDecision}
+          />
+        )}
+        {decision && !decisionLoading && (
+          <div className="animate-rise space-y-4">
+            {decision.options?.map((opt, i) => (
+              <div
+                key={i}
+                className="rounded-2xl border border-stone-200 bg-white/70 p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900/50"
+              >
+                <h3 className="flex items-center gap-2 font-medium">
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
+                    {i + 1}
+                  </span>
+                  {opt.name}
+                </h3>
+                {opt.considerations?.length > 0 && (
+                  <ul className="mt-3 space-y-1.5">
+                    {opt.considerations.map((c, j) => (
+                      <li key={j} className="flex gap-2 text-sm text-stone-600 dark:text-stone-300">
+                        <span className="text-violet-300 dark:text-violet-700">•</span>
+                        {c}
+                      </li>
                     ))}
                   </ul>
-                </div>
-              )}
-
-              {decision.verse && <VerseCard verse={decision.verse} />}
-              {decision.note && <Note>{decision.note}</Note>}
-
-              <div className="flex items-center gap-2 pt-1 text-sm text-emerald-600 dark:text-emerald-400">
-                <Check className="h-4 w-4" /> Saved to your history automatically.
+                )}
+                {opt.tradeoffs && (
+                  <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">
+                    <span className="font-medium text-stone-600 dark:text-stone-300">Trade-off: </span>
+                    {opt.tradeoffs}
+                  </p>
+                )}
               </div>
+            ))}
+
+            {decision.questions_to_pray?.length > 0 && (
+              <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-5 dark:border-amber-900/30 dark:bg-amber-950/20">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                  To sit with
+                </h3>
+                <ul className="mt-3 space-y-2">
+                  {decision.questions_to_pray.map((q, i) => (
+                    <li key={i} className="text-sm text-stone-700 dark:text-stone-200">{q}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {decision.verse && <VerseCard verse={decision.verse} />}
+            {decision.note && <Note>{decision.note}</Note>}
+
+            <div className="flex items-center gap-2 pt-1 text-sm text-emerald-600 dark:text-emerald-400">
+              <Check className="h-4 w-4" /> Saved to your history automatically.
             </div>
-          )}
-        </Section>
-      </div>
+          </div>
+        )}
+      </Section>
     </div>
   );
 }
-
-/* ---------- section shell + presentational pieces ---------- */
 
 const EYEBROW_TINT = {
   sky: "text-sky-600 dark:text-sky-400",
@@ -374,8 +362,6 @@ function Section({
   eyebrow: string;
   title?: string;
   desc?: string;
-  // Once true, the step drops its upper-third spacers and top-aligns (see
-  // globals.css) — set as soon as an API response is populating the step.
   filled?: boolean;
   children: React.ReactNode;
 }) {

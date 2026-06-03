@@ -2,20 +2,18 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Calm, joyful, minimal palette — warm light + deep restful dark. */
 :root {
   color-scheme: light dark;
-  --bg: #fbfaf7; /* warm paper white */
-  --fg: #1c1917; /* stone-900 */
-  /* soft colour splashes for the ambient background */
-  --blob-a: rgba(52, 211, 153, 0.18); /* emerald */
-  --blob-b: rgba(125, 211, 252, 0.16); /* sky */
-  --blob-c: rgba(253, 186, 116, 0.14); /* amber */
+  --bg: #fbfaf7;
+  --fg: #1c1917;
+  --blob-a: rgba(52, 211, 153, 0.18);
+  --blob-b: rgba(125, 211, 252, 0.16);
+  --blob-c: rgba(253, 186, 116, 0.14);
 }
 
 .dark {
-  --bg: #0c0a09; /* stone-950 */
-  --fg: #f5f5f4; /* stone-100 */
+  --bg: #0c0a09;
+  --fg: #f5f5f4;
   --blob-a: rgba(16, 185, 129, 0.16);
   --blob-b: rgba(56, 189, 248, 0.12);
   --blob-c: rgba(251, 146, 60, 0.1);
@@ -28,12 +26,9 @@ html {
 body {
   background-color: var(--bg);
   color: var(--fg);
-  /* The sticky navbar carries the top inset (so it clears the status bar even
-     when pinned). Only the bottom inset belongs on the body. */
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Ambient, fixed colour splashes behind everything — calm and joyful. */
 body::before {
   content: "";
   position: fixed;
@@ -48,10 +43,6 @@ body::before {
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* Progressively blur whatever scrolls beneath the transparent navbar so the
-   nav icons and progress stepper stay legible while the colour shows through.
-   Strong blur across the nav band, masked to fade out lower down. Sits above
-   page content (z-30) but below the navbar (z-40), which keeps icons crisp. */
 body::after {
   content: "";
   position: fixed;
@@ -73,24 +64,15 @@ body::after {
   );
 }
 
-/* Home journey: each step becomes a full-height "page" so only one step is on
-   screen at a time. Scoped to <html.journey-snap> — toggled on by the Journey
-   component — so every other route keeps scrolling normally.
-
-   Snapping is two-mode. While the steps are still empty prompts they all fit the
-   viewport, so `mandatory` gives the crisp page-to-page snap. The moment a step
-   is populated (Journey adds .journey-fluid) a step can grow taller than the
-   viewport — and mandatory snapping would then trap you: its only snap point is
-   the step's start, so the bottom of a long step is unreachable (you get yanked
-   back to the top). So we relax to `proximity`, which still snaps when you
-   settle near a boundary but lets you rest anywhere — reading a long step to its
-   end, and resting at the very top of step 1 or the very bottom of step 3. */
 html.journey-snap {
   scroll-snap-type: y mandatory;
   scroll-padding-top: calc(5rem + env(safe-area-inset-top));
 }
 html.journey-snap.journey-fluid {
   scroll-snap-type: y proximity;
+}
+html.journey-snap.keyboard-open {
+  scroll-snap-type: none;
 }
 html.journey-snap [data-step] {
   scroll-snap-align: start;
@@ -100,11 +82,9 @@ html.journey-snap [data-step] {
   padding-top: 1rem;
   padding-bottom: 2rem;
 }
-/* While a step is still an empty prompt, two flexible spacers sit its content
-   high on the page (content starts ~1/5 down — the upper-third feel). The
-   moment a step is populated (data-filled — set once an API response lands) the
-   spacers are gone and the content top-aligns, so it starts at the top and uses
-   every pixel rather than being pushed below a dead gap you can't scroll into. */
+html.journey-snap [data-step="collect"] {
+  scroll-snap-stop: always;
+}
 html.journey-snap [data-step]:not([data-filled])::before {
   content: "";
   flex: 1 1 0;
@@ -123,13 +103,11 @@ html.journey-snap [data-step]:not([data-filled])::after {
     transition-duration: 0.001ms !important;
   }
 
-  /* Keep the full-height pages but drop the magnetic snapping. */
   html.journey-snap {
     scroll-snap-type: none;
   }
 }
 
-/* Gentle entrance used by step/card content. */
 @keyframes rise {
   from {
     opacity: 0;

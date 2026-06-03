@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 
-/** Registers the service worker so Grounded is installable + works offline. */
 export function ServiceWorker() {
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return;
@@ -10,10 +9,7 @@ export function ServiceWorker() {
     const register = () =>
       navigator.serviceWorker
         .register("/sw.js", { scope: "/", updateViaCache: "none" })
-        .catch(() => {
-          /* registration is best-effort; app still works without it */
-        });
-    // Wait for load so registration never competes with first paint.
+        .catch(() => {});
     if (document.readyState === "complete") register();
     else window.addEventListener("load", register, { once: true });
   }, []);

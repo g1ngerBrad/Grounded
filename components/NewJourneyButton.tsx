@@ -4,17 +4,11 @@ import { Plus } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEmergency } from "@/app/providers";
 
-/**
- * Floating bottom-left button that starts a fresh decision journey from
- * anywhere. If we're already on the journey page, the Journey component resets
- * in place via the `grounded:new-journey` event; otherwise we navigate home.
- */
 export function NewJourneyButton() {
   const router = useRouter();
   const pathname = usePathname();
   const { isOpen } = useEmergency();
 
-  // Stay out of the way while the calming breather overlay is up.
   if (isOpen) return null;
 
   const start = () => {

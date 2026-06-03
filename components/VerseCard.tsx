@@ -1,7 +1,6 @@
 import { BookOpen } from "lucide-react";
 import type { Verse } from "@/lib/types";
 
-/** Calm scripture card, used across the reflect steps and history. */
 export function VerseCard({ verse }: { verse: Verse }) {
   if (!verse?.text) return null;
   return (

@@ -7,17 +7,9 @@ export const runtime = "nodejs";
 const MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 const MAX_INPUT_CHARS = 4000;
 
-type PromptType = "dump" | "facts" | "decision";
+type PromptType = "facts" | "decision";
 
 const SYSTEM_PROMPTS: Record<PromptType, string> = {
-  dump: `You are a calm, grounded Christian companion. The user will dump anxious thoughts.
-Respond ONLY with valid JSON, no markdown, matching:
-{"summary": string, "worries": string[], "verse": {"reference": string, "text": string, "translation": "KJV"|"WEB"}, "reassurance": string}
-- "summary": 1-2 sentences naming the core worry beneath the noise.
-- "worries": 2-4 short bullet phrases.
-- "verse": a WELL-KNOWN, real Bible verse about peace/trust. Use only KJV or WEB (public domain). Quote it accurately. If unsure of exact wording, pick a verse you are certain of.
-- "reassurance": 2-3 warm sentences. Do not be preachy or dismissive of their feelings.`,
-
   facts: `You are a calm Christian thinking aid using a CBT-style fact/assumption split.
 Respond ONLY with valid JSON, no markdown, matching:
 {"facts": string[], "assumptions": string[], "note": string, "verse": {"reference": string, "text": string, "translation": "KJV"|"WEB"}}
@@ -36,8 +28,6 @@ Respond ONLY with valid JSON, no markdown, matching:
 };
 
 export async function POST(req: NextRequest) {
-  // Prefer a user-supplied key (kept in their browser, sent per-request and
-  // never stored or logged here); fall back to the server's env var.
   const apiKey = req.headers.get("x-groq-key")?.trim() || process.env.GROQ_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -55,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   const { type, text } = (body ?? {}) as { type?: string; text?: string };
 
-  if (!type || !["dump", "facts", "decision"].includes(type)) {
+  if (!type || !["facts", "decision"].includes(type)) {
     return NextResponse.json({ error: "Invalid prompt type." }, { status: 400 });
   }
   if (typeof text !== "string" || text.trim().length === 0) {
@@ -93,9 +83,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Replace the model's (potentially imprecise) verse text with the exact
-    // wording from API.Bible, looked up by the reference it chose. Falls back
-    // to the model's text if API.Bible is unconfigured or the lookup fails.
     const data = parsed as { verse?: Verse };
     if (data.verse?.reference) {
       const accurate = await fetchVerse(data.verse.reference);

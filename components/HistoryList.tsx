@@ -35,7 +35,6 @@ export function HistoryList() {
     };
   }, []);
 
-  // Avoid a hydration flash — render nothing until the client reads storage.
   if (items === null) return null;
 
   if (items.length === 0) {
@@ -58,10 +57,7 @@ export function HistoryList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-stone-500 dark:text-stone-400">
-          {items.length} {items.length === 1 ? "journey" : "journeys"}, kept on this device.
-        </p>
+      <div className="flex items-center justify-end">
         <button
           type="button"
           onClick={() => setConfirmClear(true)}
@@ -88,7 +84,6 @@ export function HistoryList() {
             key={r.id}
             className="group relative flex items-stretch rounded-2xl border border-stone-200 bg-white/70 shadow-sm transition-colors hover:border-emerald-300 dark:border-stone-800 dark:bg-stone-900/50 dark:hover:border-emerald-800"
           >
-            {/* Whole card resumes the journey exactly where it was left off. */}
             <Link href={`/?id=${r.id}`} className="flex min-w-0 flex-1 items-start gap-3 p-4">
               <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">
                 <Clock className="h-4 w-4" strokeWidth={1.75} />
@@ -159,7 +154,7 @@ function ConfirmClear({
           <div className="min-w-0">
             <h2 className="text-lg font-semibold tracking-tight">Clear all journeys?</h2>
             <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
-              This permanently removes all {count} {count === 1 ? "journey" : "journeys"} saved on
+              This permanently removes all {count} {count === 1 ? "journey" : "journeys"}&nbsp;saved on
               this device. This can&apos;t be undone.
             </p>
           </div>

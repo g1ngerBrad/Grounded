@@ -25,9 +25,6 @@ export function EmergencyModal() {
     if (rafRef.current) return;
     setHolding(true);
     startRef.current = null;
-    // Drive the fill by writing transform straight to the DOM each frame — no
-    // per-frame React render (the old stutter) and no CSS transition layered on
-    // top (the old "double bar"), so it stays smooth even under reduced motion.
     const step = (now: number) => {
       if (startRef.current === null) startRef.current = now;
       const pct = Math.min((now - startRef.current) / HOLD_MS, 1);
@@ -81,7 +78,6 @@ export function EmergencyModal() {
               animate={{ opacity: [1, 0, 1] }}
               transition={{ duration: 8, ease: "easeInOut", repeat: Infinity }}
             >
-              breathe
             </motion.span>
           </motion.div>
 
@@ -127,11 +123,6 @@ export function EmergencyModal() {
                   {holding ? "Keep holding…" : "Hold to close — I'm okay now"}
                 </span>
               </button>
-
-              <p className="mt-4 text-xs leading-relaxed text-stone-400">
-                If this is heavier than overthinking and you might be in danger,
-                please reach out to a trusted person or your local crisis line.
-              </p>
             </div>
           </div>
         </motion.div>

@@ -8,8 +8,6 @@ export function BreakGlassButton() {
 
   if (isOpen) return null;
 
-  // Rendered visible by default (no entrance animation that could leave it at
-  // opacity:0). Solid colour + shadow keeps it unmistakable on any background.
   return (
     <button
       type="button"

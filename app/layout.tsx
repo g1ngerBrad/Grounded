@@ -18,9 +18,6 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    // Transparent status bar — the page background shows through it (dark in
-    // dark mode) instead of a fixed white bar. Relies on viewportFit "cover"
-    // and the body's safe-area-inset-top padding to keep content clear.
     statusBarStyle: "black-translucent",
     title: "Grounded",
   },

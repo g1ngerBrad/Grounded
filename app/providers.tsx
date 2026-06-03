@@ -24,7 +24,6 @@ type JourneyProgressCtx = {
 
 const JourneyProgressContext = createContext<JourneyProgressCtx | null>(null);
 
-/** Lets the active Journey publish its step progress to the navbar stepper. */
 export function useJourneyProgress() {
   const ctx = useContext(JourneyProgressContext);
   if (!ctx) throw new Error("useJourneyProgress must be used within <Providers>");

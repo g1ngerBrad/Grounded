@@ -16,12 +16,10 @@ const RAIL_TINT = {
   violet: "bg-violet-600 text-white ring-violet-200 dark:ring-violet-900/50",
 } as const;
 
-/** Scroll a journey section into view by its data-step attribute. */
 export function scrollToStep(key: StepKey, behavior: ScrollBehavior = "smooth") {
   document.querySelector(`[data-step="${key}"]`)?.scrollIntoView({ behavior, block: "start" });
 }
 
-/** Horizontal progress stepper — designed to sit inline inside the navbar. */
 export function StepRail({ active, done }: StepProgress) {
   return (
     <ol aria-label="Progress" className="flex flex-1 items-center">

@@ -2,8 +2,6 @@
 
 import type { Reflection } from "./types";
 
-// Past reflections are kept locally on the device only — nothing leaves the
-// browser. This keeps personal, sensitive writing private by default.
 const KEY = "grounded.history.v1";
 const MAX = 50;
 
@@ -21,11 +19,8 @@ function read(): Reflection[] {
 function write(items: Reflection[]) {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(items.slice(0, MAX)));
-    // Let listeners in the same tab know (storage event only fires cross-tab).
     window.dispatchEvent(new Event("grounded:history"));
-  } catch {
-    /* storage may be full or blocked — fail quietly */
-  }
+  } catch {}
 }
 
 export function getHistory(): Reflection[] {
@@ -36,7 +31,6 @@ export function getReflection(id: string): Reflection | undefined {
   return read().find((r) => r.id === id);
 }
 
-/** Insert or update a reflection, keyed by id. */
 export function saveReflection(reflection: Reflection) {
   const items = read().filter((r) => r.id !== reflection.id);
   items.unshift(reflection);

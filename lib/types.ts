@@ -1,5 +1,3 @@
-// Shared shapes for the reflection flow and stored history.
-
 export type Verse = { reference: string; text: string; translation: string };
 
 export type FactsResult = {
@@ -23,13 +21,10 @@ export type DecisionResult = {
   note: string;
 };
 
-/** The three stages of a journey, in order. */
 export type StepKey = "collect" | "sort" | "decide";
 
-/** Live progress of the active journey, shared with the navbar stepper. */
 export type StepProgress = { active: StepKey; done: Record<StepKey, boolean> };
 
-/** One complete (or in-progress) walk through the reflect steps. */
 export type Reflection = {
   id: string;
   createdAt: number;

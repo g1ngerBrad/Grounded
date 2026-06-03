@@ -34,7 +34,6 @@ export function Navbar() {
           </Link>
         )}
 
-        {/* Home: the journey stepper lives in the navbar. Other pages keep the brand. */}
         {isHome && progress ? (
           <StepRail active={progress.active} done={progress.done} />
         ) : !isHome && !onHistory ? (
