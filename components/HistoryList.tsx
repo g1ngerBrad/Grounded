@@ -20,9 +20,13 @@ function formatDate(ts: number) {
   }
 }
 
+type Pending =
+  | { type: "all" }
+  | { type: "one"; item: Reflection };
+
 export function HistoryList() {
   const [items, setItems] = useState<Reflection[] | null>(null);
-  const [confirmClear, setConfirmClear] = useState(false);
+  const [pending, setPending] = useState<Pending | null>(null);
 
   useEffect(() => {
     const refresh = () => setItems(getHistory());
@@ -60,20 +64,22 @@ export function HistoryList() {
       <div className="flex items-center justify-end">
         <button
           type="button"
-          onClick={() => setConfirmClear(true)}
+          onClick={() => setPending({ type: "all" })}
           className="text-xs font-medium text-stone-400 transition-colors hover:text-rose-500"
         >
           Clear all
         </button>
       </div>
 
-      {confirmClear && (
-        <ConfirmClear
+      {pending && (
+        <ConfirmDelete
+          pending={pending}
           count={items.length}
-          onCancel={() => setConfirmClear(false)}
+          onCancel={() => setPending(null)}
           onConfirm={() => {
-            clearHistory();
-            setConfirmClear(false);
+            if (pending.type === "all") clearHistory();
+            else deleteReflection(pending.item.id);
+            setPending(null);
           }}
         />
       )}
@@ -82,7 +88,7 @@ export function HistoryList() {
         {items.map((r) => (
           <li
             key={r.id}
-            className="group relative flex items-stretch rounded-2xl border border-stone-200 bg-white/70 shadow-sm transition-colors hover:border-emerald-300 dark:border-stone-800 dark:bg-stone-900/50 dark:hover:border-emerald-800"
+            className="group flex items-stretch overflow-hidden rounded-2xl border border-stone-200 bg-white/70 shadow-sm transition-colors hover:border-emerald-300 dark:border-stone-800 dark:bg-stone-900/50 dark:hover:border-emerald-800"
           >
             <Link href={`/?id=${r.id}`} className="flex min-w-0 flex-1 items-start gap-3 p-4">
               <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400">
@@ -102,11 +108,11 @@ export function HistoryList() {
             </Link>
             <button
               type="button"
-              onClick={() => deleteReflection(r.id)}
+              onClick={() => setPending({ type: "one", item: r })}
               aria-label="Delete journey"
-              className="absolute right-2 top-2 rounded-full p-1.5 text-stone-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 focus-visible:opacity-100 group-hover:opacity-100 dark:text-stone-600 dark:hover:bg-rose-950/30"
+              className="flex w-12 shrink-0 items-center justify-center border-l border-stone-100 text-stone-300 transition-colors hover:bg-rose-50 hover:text-rose-500 dark:border-stone-800 dark:text-stone-600 dark:hover:bg-rose-950/30 dark:hover:text-rose-400"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-4 w-4" strokeWidth={1.75} />
             </button>
           </li>
         ))}
@@ -115,11 +121,13 @@ export function HistoryList() {
   );
 }
 
-function ConfirmClear({
+function ConfirmDelete({
+  pending,
   count,
   onCancel,
   onConfirm,
 }: {
+  pending: Pending;
   count: number;
   onCancel: () => void;
   onConfirm: () => void;
@@ -135,6 +143,10 @@ function ConfirmClear({
     };
   }, [onCancel]);
 
+  const all = pending.type === "all";
+  const title = all ? "Clear all journeys?" : "Delete this journey?";
+  const confirmLabel = all ? "Clear all" : "Delete";
+
   return createPortal(
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-stone-900/30 p-4 backdrop-blur-sm sm:p-6"
@@ -143,7 +155,7 @@ function ConfirmClear({
       <div
         role="alertdialog"
         aria-modal="true"
-        aria-label="Clear all journeys"
+        aria-label={title}
         onClick={(e) => e.stopPropagation()}
         className="animate-rise my-auto w-full max-w-sm rounded-3xl border border-stone-200 bg-[var(--bg)] p-6 shadow-xl dark:border-stone-800"
       >
@@ -152,10 +164,17 @@ function ConfirmClear({
             <Trash2 className="h-5 w-5" strokeWidth={1.75} />
           </span>
           <div className="min-w-0">
-            <h2 className="text-lg font-semibold tracking-tight">Clear all journeys?</h2>
+            <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
             <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
-              This permanently removes all {count} {count === 1 ? "journey" : "journeys"}&nbsp;saved on
-              this device. This can&apos;t be undone.
+              {all ? (
+                <>
+                  This permanently removes all {count}{" "}
+                  {count === 1 ? "journey" : "journeys"}&nbsp;saved on this device. This
+                  can&apos;t be undone.
+                </>
+              ) : (
+                <>This permanently removes this journey from this device. This can&apos;t be undone.</>
+              )}
             </p>
           </div>
         </div>
@@ -173,7 +192,7 @@ function ConfirmClear({
             onClick={onConfirm}
             className="rounded-full bg-rose-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-rose-700"
           >
-            Clear all
+            {confirmLabel}
           </button>
         </div>
       </div>

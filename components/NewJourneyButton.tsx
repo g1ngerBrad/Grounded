@@ -9,7 +9,7 @@ export function NewJourneyButton() {
   const pathname = usePathname();
   const { isOpen } = useEmergency();
 
-  if (isOpen) return null;
+  if (isOpen || pathname === "/history") return null;
 
   const start = () => {
     if (pathname !== "/") router.push("/");

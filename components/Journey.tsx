@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRight, Loader2, Check, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, Check, Sparkles, RefreshCw } from "lucide-react";
 import { VerseCard } from "@/components/VerseCard";
 import { scrollToStep } from "@/components/StepRail";
 import { newId, saveReflection, getReflection } from "@/lib/history";
@@ -39,6 +39,7 @@ export function Journey() {
   const [factsError, setFactsError] = useState<string | null>(null);
   const [decisionError, setDecisionError] = useState<string | null>(null);
   const [active, setActive] = useState<StepKey>("collect");
+  const [sortedDump, setSortedDump] = useState<string | null>(null);
 
   const persist = useCallback(
     (patch: Partial<Reflection>) => {
@@ -69,6 +70,7 @@ export function Journey() {
     setDump(saved.dump);
     setFacts(saved.facts ?? null);
     setDecision(saved.decision ?? null);
+    setSortedDump(saved.facts ? saved.dump : null);
     sessionStorage.setItem(RESUME_ID, saved.id);
 
     if (!urlId) {
@@ -84,6 +86,7 @@ export function Journey() {
     setDump("");
     setFacts(null);
     setDecision(null);
+    setSortedDump(null);
     setFactsError(null);
     setDecisionError(null);
     setActive("collect");
@@ -138,6 +141,7 @@ export function Journey() {
     try {
       const data = await generate<FactsResult>("facts", dump);
       setFacts(data);
+      setSortedDump(dump);
       persist({ facts: data });
     } catch (e) {
       setFactsError(e instanceof Error ? e.message : "Something went wrong.");
@@ -160,9 +164,17 @@ export function Journey() {
     }
   }, [dump, persist]);
 
+  const rerunFromDump = useCallback(async () => {
+    const hadDecision = !!decision;
+    await runFacts();
+    if (hadDecision) await runDecision();
+  }, [decision, runFacts, runDecision]);
+
   const hasDump = dump.trim().length > 0;
   const doneSort = !!facts;
   const doneDecide = !!decision;
+  const dumpChanged =
+    !!facts && sortedDump !== null && dump.trim() !== sortedDump.trim();
 
   const dumpRef = useRef<HTMLTextAreaElement>(null);
   const revealCaret = useCallback(() => {
@@ -223,6 +235,24 @@ export function Journey() {
           >
             Break it down <ArrowRight className="h-4 w-4" />
           </button>
+        )}
+        {dumpChanged && !factsLoading && !decisionLoading && (
+          <div className="mt-4 space-y-2">
+            <p className="text-xs text-stone-500 dark:text-stone-400">
+              You&rsquo;ve edited your dump since sorting. Rerun?
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                rerunFromDump();
+                requestAnimationFrame(() => scrollToStep("sort"));
+              }}
+              className="flex items-center gap-2 rounded-full bg-sky-500 px-5 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-sky-600"
+            >
+              <RefreshCw className="h-4 w-4" />
+              {decision ? "Re-sort & re-decide" : "Re-sort"}
+            </button>
+          </div>
         )}
       </Section>
 
