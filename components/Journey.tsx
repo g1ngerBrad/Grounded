@@ -121,6 +121,15 @@ export function Journey() {
     return () => document.documentElement.classList.remove("journey-snap");
   }, []);
 
+  // Once a step holds a real result it can run taller than the viewport, so
+  // relax mandatory snapping to proximity (see globals.css) — otherwise the
+  // bottom of a long step is unreachable. Empty journeys keep the crisp snap.
+  const hasContent = !!facts || !!decision;
+  useEffect(() => {
+    document.documentElement.classList.toggle("journey-fluid", hasContent);
+    return () => document.documentElement.classList.remove("journey-fluid");
+  }, [hasContent]);
+
   // Remember the step in view so a return from History reopens it (only once a
   // journey actually exists — a blank slate has nothing to restore).
   useEffect(() => {
