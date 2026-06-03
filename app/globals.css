@@ -73,14 +73,16 @@ body::after {
   );
 }
 
-/* Home journey: each step becomes a full-height "page" that gently snaps into
+/* Home journey: each step becomes a full-height "page" that crisply snaps into
    view, so only one step is on screen at a time. Scoped to <html.journey-snap>
    — toggled on by the Journey component — so every other route keeps scrolling
-   normally. Snapping is `proximity` (not `mandatory`) and we drop
-   `scroll-snap-stop`, so a step taller than the viewport can be scrolled through
-   freely instead of every gesture yanking you to the next step. */
+   normally. We keep `mandatory` for the crisp page-to-page feel but deliberately
+   omit `scroll-snap-stop: always`: that flag forced every gesture to jump a full
+   step, which trapped you inside a step taller than the viewport. Without it,
+   mandatory relaxes for over-tall steps, letting you scroll through their
+   content while short steps still snap firmly. */
 html.journey-snap {
-  scroll-snap-type: y proximity;
+  scroll-snap-type: y mandatory;
   scroll-padding-top: calc(5rem + env(safe-area-inset-top));
 }
 html.journey-snap [data-step] {
