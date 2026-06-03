@@ -46,6 +46,50 @@ body::before {
     radial-gradient(34rem 34rem at 50% 108%, var(--blob-c), transparent 60%);
 }
 
+/* Progressively blur whatever scrolls beneath the transparent navbar so the
+   nav icons and progress stepper stay legible while the colour shows through.
+   Strong blur across the nav band, masked to fade out lower down. Sits above
+   page content (z-30) but below the navbar (z-40), which keeps icons crisp. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: calc(8rem + env(safe-area-inset-top));
+  z-index: 30;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black calc(3.5rem + env(safe-area-inset-top)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(3.5rem + env(safe-area-inset-top)),
+    transparent
+  );
+}
+
+/* Home journey: each step becomes a full-height "page" that gently snaps into
+   view, so only one step is on screen at a time and scrolling jumps between
+   them. Scoped to <html.journey-snap> — toggled on by the Journey component —
+   so every other route keeps scrolling normally. `safe center` vertically
+   centres short steps but falls back to top-aligned when a step's content is
+   taller than the viewport, so nothing hides behind the sticky navbar. */
+html.journey-snap {
+  scroll-snap-type: y proximity;
+  scroll-padding-top: 5rem;
+}
+html.journey-snap [data-step] {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  min-height: calc(100svh - 5rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -53,6 +97,11 @@ body::before {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+
+  /* Keep the full-height pages but drop the magnetic snapping. */
+  html.journey-snap {
+    scroll-snap-type: none;
   }
 }
 

@@ -6,7 +6,7 @@ export default function Page() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">History</h1>
         <p className="text-sm text-stone-500 dark:text-stone-400">
-          Past interactions — revisit what you worked through.
+          Pick up a past journey right where you left it.
         </p>
       </header>
       <HistoryList />

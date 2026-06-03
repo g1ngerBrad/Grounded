@@ -1,6 +1,6 @@
 // Grounded service worker — enables installable PWA + basic offline support.
-const CACHE = "grounded-v1";
-const PRECACHE = ["/", "/reflect", "/history", "/manifest.webmanifest", "/icon.svg"];
+const CACHE = "grounded-v2";
+const PRECACHE = ["/", "/history", "/manifest.webmanifest", "/icon.svg"];
 
 // Install: pre-cache the app shell (best-effort — never block install on a miss).
 self.addEventListener("install", (event) => {

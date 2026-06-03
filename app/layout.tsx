@@ -43,7 +43,7 @@ export default function RootLayout({
       <body className="min-h-dvh text-stone-900 antialiased transition-colors duration-300 dark:text-stone-100">
         <Providers>
           <Navbar />
-          <main className="mx-auto w-full max-w-2xl px-5 pb-32 pt-6">
+          <main className="mx-auto w-full max-w-3xl px-5 pb-32 pt-6">
             {children}
           </main>
           <ServiceWorker />
