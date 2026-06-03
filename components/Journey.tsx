@@ -9,6 +9,11 @@ import { getGroqKey } from "@/lib/settings";
 import { useJourneyProgress } from "@/app/providers";
 import type { FactsResult, DecisionResult, Reflection, StepKey } from "@/lib/types";
 
+// Keys for remembering the in-progress journey across an in-app navigation
+// (e.g. popping over to History and back), so we land on the same step + content.
+const RESUME_ID = "grounded:resume-id";
+const RESUME_STEP = "grounded:resume-step";
+
 async function generate<T>(type: "facts" | "decision", text: string): Promise<T> {
   const key = getGroqKey();
   const res = await fetch("/api/groq", {
@@ -51,16 +56,20 @@ export function Journey() {
         ...patch,
       };
       saveReflection(record);
+      sessionStorage.setItem(RESUME_ID, idRef.current);
     },
     [dump, facts, decision],
   );
 
-  // On mount, resume a saved journey if ?id= points at one. Reading storage is
-  // a one-time client-side hydration of state, so the cascading-render warning
-  // does not apply here.
+  // On mount, resume a saved journey. An explicit ?id= (a History card) wins;
+  // otherwise fall back to the in-progress journey remembered for this tab, so
+  // returning from History lands back on the same step and content. Reading
+  // storage is a one-time client-side hydration, so the cascading-render
+  // warning does not apply here.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("id");
+    const urlId = new URLSearchParams(window.location.search).get("id");
+    const id = urlId ?? sessionStorage.getItem(RESUME_ID);
     if (!id) return;
     const saved = getReflection(id);
     if (!saved) return;
@@ -69,7 +78,17 @@ export function Journey() {
     setDump(saved.dump);
     setFacts(saved.facts ?? null);
     setDecision(saved.decision ?? null);
-    setResumedAt(saved.createdAt);
+    sessionStorage.setItem(RESUME_ID, saved.id);
+
+    if (urlId) {
+      // Opening a journey afresh from History — greet, and start at the top.
+      setResumedAt(saved.createdAt);
+    } else {
+      // Coming back mid-session — restore the step they were last on (no smooth
+      // scroll, so it's already in place when the page paints).
+      const step = sessionStorage.getItem(RESUME_STEP) as StepKey | null;
+      if (step) requestAnimationFrame(() => scrollToStep(step, "auto"));
+    }
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -84,6 +103,8 @@ export function Journey() {
     setDecisionError(null);
     setResumedAt(null);
     setActive("collect");
+    sessionStorage.removeItem(RESUME_ID);
+    sessionStorage.removeItem(RESUME_STEP);
     window.history.replaceState({}, "", "/");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -99,6 +120,12 @@ export function Journey() {
     document.documentElement.classList.add("journey-snap");
     return () => document.documentElement.classList.remove("journey-snap");
   }, []);
+
+  // Remember the step in view so a return from History reopens it (only once a
+  // journey actually exists — a blank slate has nothing to restore).
+  useEffect(() => {
+    if (createdRef.current) sessionStorage.setItem(RESUME_STEP, active);
+  }, [active]);
 
   // Track which section is in view to light up the step slider. We anchor to a
   // line near the top of the viewport and pick the last section whose top has

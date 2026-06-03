@@ -8,7 +8,8 @@ const HOLD_MS = 2000;
 
 export function EmergencyModal() {
   const { isOpen, close } = useEmergency();
-  const [progress, setProgress] = useState(0);
+  const [holding, setHolding] = useState(false);
+  const fillRef = useRef<HTMLSpanElement>(null);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
 
@@ -16,17 +17,21 @@ export function EmergencyModal() {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
     startRef.current = null;
-    setProgress(0);
+    setHolding(false);
+    if (fillRef.current) fillRef.current.style.transform = "scaleX(0)";
   }, []);
 
   const startHold = useCallback(() => {
     if (rafRef.current) return;
+    setHolding(true);
     startRef.current = null;
-    // Local self-referencing loop (not a hook) drives the hold-to-close ring.
+    // Drive the fill by writing transform straight to the DOM each frame — no
+    // per-frame React render (the old stutter) and no CSS transition layered on
+    // top (the old "double bar"), so it stays smooth even under reduced motion.
     const step = (now: number) => {
       if (startRef.current === null) startRef.current = now;
       const pct = Math.min((now - startRef.current) / HOLD_MS, 1);
-      setProgress(pct);
+      if (fillRef.current) fillRef.current.style.transform = `scaleX(${pct})`;
       if (pct >= 1) {
         stopHold();
         close();
@@ -113,12 +118,13 @@ export function EmergencyModal() {
                 className="relative w-full select-none overflow-hidden rounded-full border border-stone-300 px-6 py-3.5 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-stone-300/40 dark:border-stone-700 dark:text-stone-200 dark:hover:bg-stone-900"
               >
                 <span
+                  ref={fillRef}
                   aria-hidden
                   className="absolute inset-0 origin-left bg-emerald-500/15"
-                  style={{ transform: `scaleX(${progress})`, transition: "transform 60ms linear" }}
+                  style={{ transform: "scaleX(0)" }}
                 />
                 <span className="relative">
-                  {progress > 0 ? "Keep holding…" : "Hold to close — I'm okay now"}
+                  {holding ? "Keep holding…" : "Hold to close — I'm okay now"}
                 </span>
               </button>
 

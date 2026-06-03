@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Clock, Trash2, ChevronRight, Sprout } from "lucide-react";
 import { getHistory, deleteReflection, clearHistory } from "@/lib/history";
@@ -21,6 +22,7 @@ function formatDate(ts: number) {
 
 export function HistoryList() {
   const [items, setItems] = useState<Reflection[] | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   useEffect(() => {
     const refresh = () => setItems(getHistory());
@@ -62,14 +64,23 @@ export function HistoryList() {
         </p>
         <button
           type="button"
-          onClick={() => {
-            if (confirm("Clear all saved journeys?")) clearHistory();
-          }}
+          onClick={() => setConfirmClear(true)}
           className="text-xs font-medium text-stone-400 transition-colors hover:text-rose-500"
         >
           Clear all
         </button>
       </div>
+
+      {confirmClear && (
+        <ConfirmClear
+          count={items.length}
+          onCancel={() => setConfirmClear(false)}
+          onConfirm={() => {
+            clearHistory();
+            setConfirmClear(false);
+          }}
+        />
+      )}
 
       <ul className="space-y-3">
         {items.map((r) => (
@@ -106,6 +117,73 @@ export function HistoryList() {
         ))}
       </ul>
     </div>
+  );
+}
+
+function ConfirmClear({
+  count,
+  onCancel,
+  onConfirm,
+}: {
+  count: number;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onCancel]);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-stone-900/30 p-4 backdrop-blur-sm sm:p-6"
+      onClick={onCancel}
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-label="Clear all journeys"
+        onClick={(e) => e.stopPropagation()}
+        className="animate-rise my-auto w-full max-w-sm rounded-3xl border border-stone-200 bg-[var(--bg)] p-6 shadow-xl dark:border-stone-800"
+      >
+        <div className="flex items-start gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400">
+            <Trash2 className="h-5 w-5" strokeWidth={1.75} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold tracking-tight">Clear all journeys?</h2>
+            <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+              This permanently removes all {count} {count === 1 ? "journey" : "journeys"} saved on
+              this device. This can&apos;t be undone.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-full px-4 py-2.5 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="rounded-full bg-rose-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-rose-700"
+          >
+            Clear all
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
