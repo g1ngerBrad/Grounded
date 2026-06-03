@@ -74,26 +74,35 @@ body::after {
 }
 
 /* Home journey: each step becomes a full-height "page" that gently snaps into
-   view, so only one step is on screen at a time and scrolling jumps between
-   them. Scoped to <html.journey-snap> — toggled on by the Journey component —
-   so every other route keeps scrolling normally. `safe center` vertically
-   centres short steps but falls back to top-aligned when a step's content is
-   taller than the viewport, so nothing hides behind the sticky navbar. */
+   view, so only one step is on screen at a time. Scoped to <html.journey-snap>
+   — toggled on by the Journey component — so every other route keeps scrolling
+   normally. Snapping is `proximity` (not `mandatory`) and we drop
+   `scroll-snap-stop`, so a step taller than the viewport can be scrolled through
+   freely instead of every gesture yanking you to the next step. */
 html.journey-snap {
-  scroll-snap-type: y mandatory;
+  scroll-snap-type: y proximity;
   scroll-padding-top: calc(5rem + env(safe-area-inset-top));
 }
 html.journey-snap [data-step] {
   scroll-snap-align: start;
-  scroll-snap-stop: always;
   min-height: calc(100svh - 5rem - env(safe-area-inset-top));
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  /* Sit the content high on the page (upper third) rather than dead-centre,
-     which read as too low. clamp keeps it sane on very short/tall viewports. */
-  padding-top: clamp(1.5rem, 18vh, 12rem);
+  padding-top: 1rem;
   padding-bottom: 2rem;
+}
+/* While a step is still an empty prompt, two flexible spacers sit its content
+   high on the page (content starts ~1/5 down — the upper-third feel). The
+   moment a step is populated (data-filled — set once an API response lands) the
+   spacers are gone and the content top-aligns, so it starts at the top and uses
+   every pixel rather than being pushed below a dead gap you can't scroll into. */
+html.journey-snap [data-step]:not([data-filled])::before {
+  content: "";
+  flex: 1 1 0;
+}
+html.journey-snap [data-step]:not([data-filled])::after {
+  content: "";
+  flex: 4 1 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

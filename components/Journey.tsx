@@ -193,7 +193,9 @@ export function Journey() {
     <div>
       <div>
         {resumedAt && (
-          <p className="flex items-center gap-1.5 pt-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          // Clear the navbar's fading blur band (8rem from the top, see
+          // globals.css) so the greeting reads crisply instead of through blur.
+          <p className="flex items-center gap-1.5 pt-14 text-xs font-medium text-emerald-600 dark:text-emerald-400">
             <Sparkles className="h-3.5 w-3.5" /> Picking up where you left off
           </p>
         )}
@@ -223,7 +225,7 @@ export function Journey() {
         </Section>
 
         {/* 2 · Sort -------------------------------------------------------- */}
-        <Section stepKey="sort" tint="emerald" eyebrow="Step 2 · Sort">
+        <Section stepKey="sort" tint="emerald" eyebrow="Step 2 · Sort" filled={factsLoading || !!facts}>
           {factsLoading && <Pending label="Sorting it out…" />}
           {factsError && <ErrorRetry message={factsError} onRetry={runFacts} />}
           {!facts && !factsLoading && !factsError && (
@@ -270,7 +272,7 @@ export function Journey() {
         </Section>
 
         {/* 3 · Decide ------------------------------------------------------ */}
-        <Section stepKey="decide" tint="violet" eyebrow="Step 3 · Decide">
+        <Section stepKey="decide" tint="violet" eyebrow="Step 3 · Decide" filled={decisionLoading || !!decision}>
           {decisionLoading && <Pending label="Laying it out…" />}
           {decisionError && <ErrorRetry message={decisionError} onRetry={runDecision} />}
           {!decision && !decisionLoading && !decisionError && (
@@ -355,6 +357,7 @@ function Section({
   eyebrow,
   title,
   desc,
+  filled,
   children,
 }: {
   stepKey: StepKey;
@@ -362,10 +365,13 @@ function Section({
   eyebrow: string;
   title?: string;
   desc?: string;
+  // Once true, the step drops its upper-third spacers and top-aligns (see
+  // globals.css) — set as soon as an API response is populating the step.
+  filled?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <section data-step={stepKey}>
+    <section data-step={stepKey} data-filled={filled ? "" : undefined}>
       <header className="mb-4 space-y-1">
         <p className={`text-xs font-semibold uppercase tracking-wide ${EYEBROW_TINT[tint]}`}>{eyebrow}</p>
         {title && <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>}
