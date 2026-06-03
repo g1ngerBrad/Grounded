@@ -43,6 +43,8 @@ body::before {
     radial-gradient(40rem 40rem at 12% -8%, var(--blob-a), transparent 60%),
     radial-gradient(36rem 36rem at 92% 4%, var(--blob-b), transparent 60%),
     radial-gradient(34rem 34rem at 50% 108%, var(--blob-c), transparent 60%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 /* Progressively blur whatever scrolls beneath the transparent navbar so the
