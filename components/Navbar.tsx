@@ -14,7 +14,7 @@ export function Navbar() {
   const { progress } = useJourneyProgress();
 
   return (
-    <header className="sticky top-0 z-40">
+    <header className="sticky top-0 z-40 pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-3">
         {onHistory ? (
           <Link

@@ -28,7 +28,8 @@ html {
 body {
   background-color: var(--bg);
   color: var(--fg);
-  padding-top: env(safe-area-inset-top);
+  /* The sticky navbar carries the top inset (so it clears the status bar even
+     when pinned). Only the bottom inset belongs on the body. */
   padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -80,12 +81,12 @@ body::after {
    taller than the viewport, so nothing hides behind the sticky navbar. */
 html.journey-snap {
   scroll-snap-type: y mandatory;
-  scroll-padding-top: 5rem;
+  scroll-padding-top: calc(5rem + env(safe-area-inset-top));
 }
 html.journey-snap [data-step] {
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  min-height: calc(100svh - 5rem);
+  min-height: calc(100svh - 5rem - env(safe-area-inset-top));
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
