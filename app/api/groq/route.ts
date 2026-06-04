@@ -22,21 +22,21 @@ const COMPLEXITY_GUIDANCE: Record<Complexity, string> = {
 const SYSTEM_PROMPTS: Record<PromptType, string> = {
   facts: `You are a calm Christian thinking aid using a CBT-style fact/assumption split.
 Respond ONLY with valid JSON, no markdown, matching:
-{"title": string, "facts": string[], "assumptions": string[], "note": string, "verse": {"reference": string, "text": string, "translation": "KJV"|"WEB"}}
+{"title": string, "facts": string[], "assumptions": string[], "note": string, "verse": {"reference": string}}
 - "title": a short, specific label (3-6 words, no trailing punctuation) summarizing what this is about, e.g. "Whether to take the new job". Capture the heart of the situation, not just the first words.
 - "facts": objectively verifiable statements drawn ONLY from the user's text. If none are clearly objective, return an empty array — do not invent facts.
 - "assumptions": fears/predictions/interpretations the user is treating as fact.
 - "note": 1-2 gentle sentences on why naming the difference helps.
-- "verse": a real, well-known KJV or WEB verse on truth or peace, quoted accurately.`,
+- "verse": choose ONE real, well-known Bible verse on truth or peace. Return ONLY its "reference" (e.g. "Philippians 4:6-7"). Do NOT include the verse text — the exact wording is fetched separately. Use a standard book/chapter:verse reference.`,
 
   decision: `You are a calm Christian discernment guide. The user faces a dilemma.
 Respond ONLY with valid JSON, no markdown, matching:
-{"dilemma": string, "options": [{"name": string, "considerations": string[], "tradeoffs": string}], "recommendation": {"choice": string, "reason": string}, "questions_to_pray": string[], "verse": {"reference": string, "text": string, "translation": "KJV"|"WEB"}, "note": string}
+{"dilemma": string, "options": [{"name": string, "considerations": string[], "tradeoffs": string}], "recommendation": {"choice": string, "reason": string}, "questions_to_pray": string[], "verse": {"reference": string}, "note": string}
 - "options": lay out 2-4 realistic options the user is weighing, each with honest considerations and a trade-off.
 - "recommendation.choice": MUST exactly match one option's "name". Commit to a single best option given the user's specific situation. Never hedge, never answer "it depends", never say both are equally good.
 - "recommendation.reason": 1-3 sentences giving the clear, concrete reason this option is best given what the user actually described.
 - "questions_to_pray": 2-4 reflective questions for discernment.
-- "verse": a real, well-known KJV or WEB verse on wisdom/peace/discernment, quoted accurately.
+- "verse": choose ONE real, well-known Bible verse on wisdom/peace/discernment. Return ONLY its "reference" (e.g. "James 1:5"). Do NOT include the verse text — the exact wording is fetched separately. Use a standard book/chapter:verse reference.
 - "note": affirm the final choice is theirs to make in peace — but still leave them with a clear recommendation to react to, not pressure.`,
 };
 
@@ -110,8 +110,9 @@ export async function POST(req: NextRequest) {
 
     const data = parsed as { verse?: Verse; title?: string };
     if (data.verse?.reference) {
-      const accurate = await fetchVerse(data.verse.reference);
-      if (accurate) data.verse = accurate;
+      data.verse = (await fetchVerse(data.verse.reference)) ?? undefined;
+    } else {
+      data.verse = undefined;
     }
 
     if (type === "facts" && !data.title?.trim()) {

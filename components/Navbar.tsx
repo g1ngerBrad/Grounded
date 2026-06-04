@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TreePine, Clock, ArrowLeft } from "lucide-react";
 import { Settings } from "@/components/Settings";
+import { BibleInfo } from "@/components/BibleInfo";
 import { StepRail } from "@/components/StepRail";
 import { useJourneyProgress } from "@/app/providers";
 
@@ -47,6 +48,7 @@ export function Navbar() {
           <div className="flex-1" />
         )}
 
+        <BibleInfo />
         <Settings />
       </div>
     </header>
