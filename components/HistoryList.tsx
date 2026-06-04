@@ -7,6 +7,16 @@ import { Clock, Trash2, ChevronRight, Sprout } from "lucide-react";
 import { getHistory, deleteReflection, clearHistory } from "@/lib/history";
 import type { Reflection } from "@/lib/types";
 
+const FALLBACK_MAX = 60;
+
+function titleOf(r: Reflection) {
+  const derived = r.facts?.title?.trim();
+  if (derived) return derived;
+  const line = r.dump.split("\n").map((l) => l.trim()).find((l) => l.length > 0);
+  if (!line) return "(no notes)";
+  return line.length > FALLBACK_MAX ? `${line.slice(0, FALLBACK_MAX).trimEnd()}…` : line;
+}
+
 function formatDate(ts: number) {
   try {
     return new Date(ts).toLocaleString(undefined, {
@@ -96,8 +106,8 @@ export function HistoryList() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-xs text-stone-400">{formatDate(r.createdAt)}</span>
-                <span className="mt-0.5 line-clamp-2 block text-sm text-stone-700 dark:text-stone-200">
-                  {r.dump || "(no notes)"}
+                <span className="mt-0.5 line-clamp-1 block text-sm font-medium text-stone-800 dark:text-stone-100">
+                  {titleOf(r)}
                 </span>
                 <span className="mt-1.5 flex flex-wrap gap-1.5">
                   {r.facts && <Tag tone="emerald">Sorted</Tag>}
