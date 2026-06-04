@@ -3,12 +3,40 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEmergency } from "@/app/providers";
+import type { Verse } from "@/lib/types";
 
 const HOLD_MS = 2000;
+
+type VerseStatus = "loading" | "ready" | "error";
 
 export function EmergencyModal() {
   const { isOpen, close } = useEmergency();
   const [holding, setHolding] = useState(false);
+
+  const [verse, setVerse] = useState<Verse | null>(null);
+  const [status, setStatus] = useState<VerseStatus>("loading");
+  const lastRef = useRef<string | null>(null);
+  const seed = useRef(0);
+
+  const loadVerse = useCallback(async () => {
+    seed.current += 1;
+    const params = new URLSearchParams({ seed: String(seed.current) });
+    if (lastRef.current) params.set("exclude", lastRef.current);
+    try {
+      const res = await fetch(`/api/verse?${params.toString()}`);
+      const json = res.ok ? ((await res.json()) as { verse?: Verse }) : null;
+      if (json?.verse?.text) {
+        setVerse(json.verse);
+        lastRef.current = json.verse.reference;
+        setStatus("ready");
+        return;
+      }
+      throw new Error("no verse");
+    } catch {
+      if (!lastRef.current) setStatus("error");
+    }
+  }, []);
+
   const fillRef = useRef<HTMLSpanElement>(null);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
@@ -49,6 +77,20 @@ export function EmergencyModal() {
     };
   }, [isOpen, stopHold]);
 
+  useEffect(() => {
+    void loadVerse();
+  }, [loadVerse]);
+
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (isOpen) {
+      wasOpen.current = true;
+    } else if (wasOpen.current) {
+      wasOpen.current = false;
+      void loadVerse();
+    }
+  }, [isOpen, loadVerse]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -86,15 +128,29 @@ export function EmergencyModal() {
               Pause. You are probably overthinking this.
             </p>
 
-            <figure className="space-y-2">
-              <blockquote className="text-lg leading-relaxed text-stone-600 dark:text-stone-300">
-                Take therefore no thought for the morrow: for the morrow shall
-                take thought for the things of itself. Sufficient unto the day is
-                the evil thereof.
-              </blockquote>
-              <figcaption className="text-sm text-stone-400">
-                Matthew 6:34 (KJV)
-              </figcaption>
+            <figure className="space-y-2" aria-live="polite" aria-busy={!verse && status === "loading"}>
+              {verse ? (
+                <>
+                  <blockquote className="text-lg leading-relaxed text-stone-600 dark:text-stone-300">
+                    “{verse.text}”
+                  </blockquote>
+                  <figcaption className="text-sm text-stone-400">
+                    {verse.reference}
+                    {verse.translation ? ` (${verse.translation})` : ""}
+                  </figcaption>
+                </>
+              ) : status === "error" ? (
+                <blockquote className="text-lg leading-relaxed text-stone-600 dark:text-stone-300">
+                  Take a slow breath. You don&apos;t have to solve everything
+                  right now — just this moment.
+                </blockquote>
+              ) : (
+                <div className="space-y-2" aria-hidden>
+                  <div className="mx-auto h-4 w-11/12 animate-pulse rounded-full bg-stone-200 dark:bg-stone-800" />
+                  <div className="mx-auto h-4 w-4/5 animate-pulse rounded-full bg-stone-200 dark:bg-stone-800" />
+                  <div className="mx-auto mt-3 h-3 w-28 animate-pulse rounded-full bg-stone-200 dark:bg-stone-800" />
+                </div>
+              )}
             </figure>
 
             <div className="pt-4">

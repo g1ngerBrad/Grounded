@@ -5,7 +5,7 @@ export type FactsResult = {
   facts: string[];
   assumptions: string[];
   note: string;
-  verse: Verse;
+  verse?: Verse;
 };
 
 export type DecisionOption = {
@@ -24,7 +24,7 @@ export type DecisionResult = {
   options: DecisionOption[];
   recommendation: DecisionRecommendation;
   questions_to_pray: string[];
-  verse: Verse;
+  verse?: Verse;
   note: string;
 };
 

@@ -510,7 +510,11 @@ function RunPrompt({
 }
 
 function Note({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm leading-relaxed text-stone-600 dark:text-stone-300">{children}</p>;
+  return (
+    <div className="rounded-2xl border border-stone-200 bg-white/70 p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900/50">
+      <p className="text-sm leading-relaxed text-stone-600 dark:text-stone-300">{children}</p>
+    </div>
+  );
 }
 
 function NumberBadge({ n }: { n: number }) {
