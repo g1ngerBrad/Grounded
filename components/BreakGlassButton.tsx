@@ -1,12 +1,14 @@
 "use client";
 
 import { LifeBuoy } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEmergency } from "@/app/providers";
 
 export function BreakGlassButton() {
   const { open, isOpen } = useEmergency();
+  const pathname = usePathname();
 
-  if (isOpen) return null;
+  if (isOpen || pathname === "/history") return null;
 
   return (
     <button
