@@ -3,16 +3,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Loader2, Check, Sparkles, RefreshCw } from "lucide-react";
 import { VerseCard } from "@/components/VerseCard";
+import { Select } from "@/components/Select";
 import { scrollToStep } from "@/components/StepRail";
 import { newId, saveReflection, getReflection } from "@/lib/history";
 import { getGroqKey } from "@/lib/settings";
 import { useJourneyProgress } from "@/app/providers";
-import type { FactsResult, DecisionResult, Reflection, StepKey } from "@/lib/types";
+import type { FactsResult, DecisionResult, DecisionOption, Reflection, StepKey, Complexity } from "@/lib/types";
+
+const COMPLEXITY_OPTIONS: { value: Complexity; label: string }[] = [
+  { value: "simple", label: "Simple — an everyday choice (where to eat)" },
+  { value: "moderate", label: "Moderate — needs some thought" },
+  { value: "complex", label: "Complex — life-shaping (career, relationships)" },
+];
 
 const RESUME_ID = "grounded:resume-id";
 const RESUME_STEP = "grounded:resume-step";
 
-async function generate<T>(type: "facts" | "decision", text: string): Promise<T> {
+async function generate<T>(
+  type: "facts" | "decision",
+  text: string,
+  complexity: Complexity,
+): Promise<T> {
   const key = getGroqKey();
   const res = await fetch("/api/groq", {
     method: "POST",
@@ -20,7 +31,7 @@ async function generate<T>(type: "facts" | "decision", text: string): Promise<T>
       "Content-Type": "application/json",
       ...(key ? { "x-groq-key": key } : {}),
     },
-    body: JSON.stringify({ type, text }),
+    body: JSON.stringify({ type, text, complexity }),
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.error ?? "Request failed");
@@ -32,6 +43,7 @@ export function Journey() {
   const createdRef = useRef<number>(0);
 
   const [dump, setDump] = useState("");
+  const [complexity, setComplexity] = useState<Complexity>("moderate");
   const [facts, setFacts] = useState<FactsResult | null>(null);
   const [decision, setDecision] = useState<DecisionResult | null>(null);
   const [factsLoading, setFactsLoading] = useState(false);
@@ -40,22 +52,24 @@ export function Journey() {
   const [decisionError, setDecisionError] = useState<string | null>(null);
   const [active, setActive] = useState<StepKey>("collect");
   const [sortedDump, setSortedDump] = useState<string | null>(null);
+  const [sortedComplexity, setSortedComplexity] = useState<Complexity | null>(null);
 
   const persist = useCallback(
     (patch: Partial<Reflection>) => {
       if (!createdRef.current) createdRef.current = Date.now();
+      const prev = getReflection(idRef.current);
       const record: Reflection = {
+        ...prev,
         id: idRef.current,
         createdAt: createdRef.current,
         dump,
-        facts: facts ?? undefined,
-        decision: decision ?? undefined,
+        complexity,
         ...patch,
       };
       saveReflection(record);
       sessionStorage.setItem(RESUME_ID, idRef.current);
     },
-    [dump, facts, decision],
+    [dump, complexity],
   );
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -68,9 +82,11 @@ export function Journey() {
     idRef.current = saved.id;
     createdRef.current = saved.createdAt;
     setDump(saved.dump);
+    setComplexity(saved.complexity ?? "moderate");
     setFacts(saved.facts ?? null);
     setDecision(saved.decision ?? null);
     setSortedDump(saved.facts ? saved.dump : null);
+    setSortedComplexity(saved.facts ? saved.complexity ?? "moderate" : null);
     sessionStorage.setItem(RESUME_ID, saved.id);
 
     if (!urlId) {
@@ -84,9 +100,11 @@ export function Journey() {
     idRef.current = newId();
     createdRef.current = 0;
     setDump("");
+    setComplexity("moderate");
     setFacts(null);
     setDecision(null);
     setSortedDump(null);
+    setSortedComplexity(null);
     setFactsError(null);
     setDecisionError(null);
     setActive("collect");
@@ -139,22 +157,23 @@ export function Journey() {
     setFactsLoading(true);
     setFactsError(null);
     try {
-      const data = await generate<FactsResult>("facts", dump);
+      const data = await generate<FactsResult>("facts", dump, complexity);
       setFacts(data);
       setSortedDump(dump);
+      setSortedComplexity(complexity);
       persist({ facts: data });
     } catch (e) {
       setFactsError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
       setFactsLoading(false);
     }
-  }, [dump, persist]);
+  }, [dump, complexity, persist]);
 
   const runDecision = useCallback(async () => {
     setDecisionLoading(true);
     setDecisionError(null);
     try {
-      const data = await generate<DecisionResult>("decision", dump);
+      const data = await generate<DecisionResult>("decision", dump, complexity);
       setDecision(data);
       persist({ decision: data });
     } catch (e) {
@@ -162,7 +181,7 @@ export function Journey() {
     } finally {
       setDecisionLoading(false);
     }
-  }, [dump, persist]);
+  }, [dump, complexity, persist]);
 
   const rerunFromDump = useCallback(async () => {
     const hadDecision = !!decision;
@@ -175,6 +194,9 @@ export function Journey() {
   const doneDecide = !!decision;
   const dumpChanged =
     !!facts && sortedDump !== null && dump.trim() !== sortedDump.trim();
+  const complexityChanged =
+    !!facts && sortedComplexity !== null && complexity !== sortedComplexity;
+  const inputsChanged = dumpChanged || complexityChanged;
 
   const dumpRef = useRef<HTMLTextAreaElement>(null);
   const revealCaret = useCallback(() => {
@@ -224,6 +246,24 @@ export function Journey() {
           placeholder="Everything on your mind…"
           className="w-full resize-none rounded-2xl border border-stone-200 bg-white/70 p-4 text-stone-900 shadow-sm outline-none transition-colors placeholder:text-stone-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 dark:border-stone-800 dark:bg-stone-900/50 dark:text-stone-100 dark:focus:border-sky-500 dark:focus:ring-sky-950/40"
         />
+        <div className="mt-4 space-y-1.5">
+          <span
+            id="complexity-label"
+            className="block text-xs font-medium text-stone-500 dark:text-stone-400"
+          >
+            How big is this decision?
+          </span>
+          <Select<Complexity>
+            id="complexity"
+            labelId="complexity-label"
+            value={complexity}
+            onChange={(value) => {
+              setComplexity(value);
+              if (hasDump) persist({ complexity: value });
+            }}
+            options={COMPLEXITY_OPTIONS}
+          />
+        </div>
         {hasDump && !facts && !factsLoading && (
           <button
             type="button"
@@ -236,10 +276,14 @@ export function Journey() {
             Break it down <ArrowRight className="h-4 w-4" />
           </button>
         )}
-        {dumpChanged && !factsLoading && !decisionLoading && (
+        {inputsChanged && !factsLoading && !decisionLoading && (
           <div className="mt-4 space-y-2">
             <p className="text-xs text-stone-500 dark:text-stone-400">
-              You&rsquo;ve edited your dump since sorting. Rerun?
+              {dumpChanged && complexityChanged
+                ? "You’ve edited your dump and changed the complexity since sorting. Rerun?"
+                : complexityChanged
+                  ? "You’ve changed the complexity since sorting. Rerun?"
+                  : "You’ve edited your dump since sorting. Rerun?"}
             </p>
             <button
               type="button"
@@ -316,35 +360,60 @@ export function Journey() {
         )}
         {decision && !decisionLoading && (
           <div className="animate-rise space-y-4">
-            {decision.options?.map((opt, i) => (
-              <div
-                key={i}
-                className="rounded-2xl border border-stone-200 bg-white/70 p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900/50"
-              >
-                <h3 className="flex items-center gap-2 font-medium">
-                  <span className="grid h-6 w-6 place-items-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
-                    {i + 1}
-                  </span>
-                  {opt.name}
-                </h3>
-                {opt.considerations?.length > 0 && (
-                  <ul className="mt-3 space-y-1.5">
-                    {opt.considerations.map((c, j) => (
-                      <li key={j} className="flex gap-2 text-sm text-stone-600 dark:text-stone-300">
-                        <span className="text-violet-300 dark:text-violet-700">•</span>
-                        {c}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {opt.tradeoffs && (
-                  <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">
-                    <span className="font-medium text-stone-600 dark:text-stone-300">Trade-off: </span>
-                    {opt.tradeoffs}
-                  </p>
-                )}
-              </div>
-            ))}
+            {(() => {
+              const opts = decision.options ?? [];
+              const rec = decision.recommendation;
+              const recIndex = rec ? opts.findIndex((o) => o.name === rec.choice) : -1;
+              const recommended = recIndex >= 0 ? opts[recIndex] : null;
+              const others = opts.filter((_, i) => i !== recIndex);
+
+              if (!recommended || !rec) {
+                return opts.map((opt, i) => (
+                  <OptionCard key={i} option={opt} badge={<NumberBadge n={i + 1} />} />
+                ));
+              }
+
+              return (
+                <>
+                  <div className="rounded-2xl border-2 border-violet-300 bg-violet-50/70 p-5 shadow-sm dark:border-violet-500/40 dark:bg-violet-950/20">
+                    <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">
+                      <Sparkles className="h-3.5 w-3.5" /> Our suggestion
+                    </p>
+                    <h3 className="mt-2 text-lg font-semibold tracking-tight">{recommended.name}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-stone-700 dark:text-stone-200">
+                      {rec.reason}
+                    </p>
+                    {recommended.considerations?.length > 0 && (
+                      <ul className="mt-3 space-y-1.5">
+                        {recommended.considerations.map((c, j) => (
+                          <li key={j} className="flex gap-2 text-sm text-stone-600 dark:text-stone-300">
+                            <span className="text-violet-400 dark:text-violet-600">•</span>
+                            {c}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {recommended.tradeoffs && (
+                      <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">
+                        <span className="font-medium text-stone-600 dark:text-stone-300">Trade-off: </span>
+                        {recommended.tradeoffs}
+                      </p>
+                    )}
+                  </div>
+
+                  {others.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-xs font-medium uppercase tracking-wide text-stone-400 dark:text-stone-500">
+                        Other options to weigh
+                      </p>
+                      {others.map((opt, i) => (
+                        <OptionCard key={i} option={opt} badge={<NumberBadge n={i + 1} />} />
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
             {decision.questions_to_pray?.length > 0 && (
               <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-5 dark:border-amber-900/30 dark:bg-amber-950/20">
@@ -442,6 +511,41 @@ function RunPrompt({
 
 function Note({ children }: { children: React.ReactNode }) {
   return <p className="text-sm leading-relaxed text-stone-600 dark:text-stone-300">{children}</p>;
+}
+
+function NumberBadge({ n }: { n: number }) {
+  return (
+    <span className="grid h-6 w-6 place-items-center rounded-full bg-violet-100 text-xs font-semibold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
+      {n}
+    </span>
+  );
+}
+
+function OptionCard({ option, badge }: { option: DecisionOption; badge: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-stone-200 bg-white/70 p-5 shadow-sm dark:border-stone-800 dark:bg-stone-900/50">
+      <h3 className="flex items-center gap-2 font-medium">
+        {badge}
+        {option.name}
+      </h3>
+      {option.considerations?.length > 0 && (
+        <ul className="mt-3 space-y-1.5">
+          {option.considerations.map((c, j) => (
+            <li key={j} className="flex gap-2 text-sm text-stone-600 dark:text-stone-300">
+              <span className="text-violet-300 dark:text-violet-700">•</span>
+              {c}
+            </li>
+          ))}
+        </ul>
+      )}
+      {option.tradeoffs && (
+        <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">
+          <span className="font-medium text-stone-600 dark:text-stone-300">Trade-off: </span>
+          {option.tradeoffs}
+        </p>
+      )}
+    </div>
+  );
 }
 
 function Pending({ label }: { label: string }) {
