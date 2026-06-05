@@ -2,8 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Info, X, BookOpen, ExternalLink } from "lucide-react";
+import {
+  HelpCircle,
+  X,
+  BookOpen,
+  ExternalLink,
+  Sparkles,
+  KeyRound,
+  Settings as SettingsIcon,
+  PenLine,
+} from "lucide-react";
 import { citation, citationText } from "@/lib/citation";
+
+type Tab = "guide" | "credits";
+
+const TABS: { value: Tab; label: string }[] = [
+  { value: "guide", label: "How to use" },
+  { value: "credits", label: "Credits" },
+];
 
 export function BibleInfo() {
   const [open, setOpen] = useState(false);
@@ -13,10 +29,10 @@ export function BibleInfo() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Scripture & copyright information"
+        aria-label="How to use and Scripture credits"
         className="rounded-full p-2 text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"
       >
-        <Info className="h-[1.2rem] w-[1.2rem]" strokeWidth={1.75} />
+        <HelpCircle className="h-[1.2rem] w-[1.2rem]" strokeWidth={1.75} />
       </button>
       {open && <BibleInfoModal onClose={() => setOpen(false)} />}
     </>
@@ -24,6 +40,9 @@ export function BibleInfo() {
 }
 
 function BibleInfoModal({ onClose }: { onClose: () => void }) {
+  const [tab, setTab] = useState<Tab>("guide");
+  const index = Math.max(0, TABS.findIndex((t) => t.value === tab));
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -43,14 +62,14 @@ function BibleInfoModal({ onClose }: { onClose: () => void }) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Scripture and copyright information"
+        aria-label="How to use Grounded and Scripture credits"
         onClick={(e) => e.stopPropagation()}
         className="animate-rise my-auto w-full max-w-md rounded-3xl border border-stone-200 bg-[var(--bg)] p-6 shadow-xl dark:border-stone-800"
       >
         <div className="flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
             <BookOpen className="h-5 w-5 text-emerald-600 dark:text-emerald-400" strokeWidth={1.9} />
-            Scripture &amp; credits
+            About Grounded
           </h2>
           <button
             type="button"
@@ -62,56 +81,186 @@ function BibleInfoModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="mt-5 space-y-4 text-sm leading-relaxed text-stone-600 dark:text-stone-300">
-          <p>
-            Verses are shown in the{" "}
-            <span className="font-medium text-stone-800 dark:text-stone-100">
-              {citation.name} ({citation.abbreviation})
-            </span>
-            .
-          </p>
+        <div
+          role="tablist"
+          aria-label="Information sections"
+          className="relative mt-5 grid grid-cols-2 gap-1 rounded-full bg-stone-100 p-1 dark:bg-stone-800/70"
+        >
+          <span
+            aria-hidden
+            className="absolute inset-y-1 left-1 rounded-full bg-white shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] dark:bg-stone-950"
+            style={{
+              width: "calc((100% - 0.75rem) / 2)",
+              transform: `translateX(calc(${index} * (100% + 0.25rem)))`,
+            }}
+          />
+          {TABS.map(({ value, label }) => {
+            const active = tab === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setTab(value)}
+                className={`relative z-10 rounded-full py-2 text-sm font-medium transition-colors ${
+                  active
+                    ? "text-stone-900 dark:text-stone-100"
+                    : "text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
 
-          <blockquote className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4 text-[0.8rem] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/50 dark:text-stone-400">
-            {citationText()}
-          </blockquote>
-
-          <a
-            href={citation.publisherUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 font-medium text-emerald-700 transition-colors hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
-          >
-            {citation.organization.replace(/®$/, "")}
-            <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.9} />
-          </a>
-
-          <hr className="border-stone-200 dark:border-stone-800" />
-
-          <p className="text-[0.8rem]">
-            Scripture text is fetched and delivered by{" "}
-            <a
-              href={citation.providerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-medium text-emerald-700 transition-colors hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
-            >
-              {citation.providerName}
-              <ExternalLink className="h-3 w-3" strokeWidth={1.9} />
-            </a>
-            . With thanks to{" "}
-            <a
-              href={citation.providerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline decoration-stone-300 underline-offset-2 hover:decoration-emerald-400 dark:decoration-stone-600"
-            >
-              api.bible
-            </a>{" "}
-            for making Scripture freely accessible to developers.
-          </p>
+        <div className="mt-5">
+          {tab === "guide" ? <GuidePanel onClose={onClose} /> : <CreditsPanel />}
         </div>
       </div>
     </div>,
     document.body,
+  );
+}
+
+function GuidePanel({ onClose }: { onClose: () => void }) {
+  const openSettings = () => {
+    onClose();
+    setTimeout(() => window.dispatchEvent(new Event("grounded:open-settings")), 0);
+  };
+
+  return (
+    <div
+      role="tabpanel"
+      className="space-y-4 text-sm leading-relaxed text-stone-600 dark:text-stone-300"
+    >
+      <ol className="space-y-3">
+        <Step
+          n={1}
+          Icon={KeyRound}
+          title="Get a free Groq API key"
+        >
+          The reflections are generated by an AI model running on{" "}
+          <a
+            href="https://console.groq.com/keys"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 font-medium text-emerald-700 transition-colors hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+          >
+            Groq
+            <ExternalLink className="h-3 w-3" strokeWidth={1.9} />
+          </a>
+          . Sign up for free, open{" "}
+          <span className="font-medium text-stone-800 dark:text-stone-100">API Keys</span>, and
+          create a new key — it starts with{" "}
+          <code className="rounded bg-stone-100 px-1 py-0.5 text-[0.75rem] dark:bg-stone-800">
+            gsk_
+          </code>
+          .
+        </Step>
+
+        <Step n={2} Icon={SettingsIcon} title="Paste it into Settings">
+          <button
+            type="button"
+            onClick={openSettings}
+            className="font-medium text-emerald-700 underline decoration-emerald-300 underline-offset-2 transition-colors hover:text-emerald-800 dark:text-emerald-400 dark:decoration-emerald-700 dark:hover:text-emerald-300"
+          >
+            Open Settings
+          </button>
+          , paste your key into the{" "}
+          <span className="font-medium text-stone-800 dark:text-stone-100">Groq API key</span> field,
+          and press Save. Your key is stored only in this browser and is never shared.
+        </Step>
+
+        <Step n={3} Icon={PenLine} title="Write and reflect">
+          Type out the situation, choose how weighty it feels, and let Grounded sort it through. You
+          can revisit past reflections any time.
+        </Step>
+      </ol>
+    </div>
+  );
+}
+
+function Step({
+  n,
+  Icon,
+  title,
+  children,
+}: {
+  n: number;
+  Icon: typeof KeyRound;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="flex gap-3">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
+        <Icon className="h-4 w-4" strokeWidth={1.9} />
+      </span>
+      <div className="space-y-0.5">
+        <p className="flex items-center gap-1.5 font-medium text-stone-800 dark:text-stone-100">
+          <span className="text-stone-400 dark:text-stone-500">{n}.</span>
+          {title}
+        </p>
+        <p className="text-[0.8rem]">{children}</p>
+      </div>
+    </li>
+  );
+}
+
+function CreditsPanel() {
+  return (
+    <div
+      role="tabpanel"
+      className="space-y-4 text-sm leading-relaxed text-stone-600 dark:text-stone-300"
+    >
+      <p>
+        Verses are shown in the{" "}
+        <span className="font-medium text-stone-800 dark:text-stone-100">
+          {citation.name} ({citation.abbreviation})
+        </span>
+        .
+      </p>
+
+      <blockquote className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4 text-[0.8rem] leading-relaxed text-stone-600 dark:border-stone-800 dark:bg-stone-900/50 dark:text-stone-400">
+        {citationText()}
+      </blockquote>
+
+      <a
+        href={citation.publisherUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 font-medium text-emerald-700 transition-colors hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+      >
+        {citation.organization.replace(/®$/, "")}
+        <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.9} />
+      </a>
+
+      <hr className="border-stone-200 dark:border-stone-800" />
+
+      <p className="text-[0.8rem]">
+        Scripture text is fetched and delivered by{" "}
+        <a
+          href={citation.providerUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 font-medium text-emerald-700 transition-colors hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+        >
+          {citation.providerName}
+          <ExternalLink className="h-3 w-3" strokeWidth={1.9} />
+        </a>
+        . With thanks to{" "}
+        <a
+          href={citation.providerUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline decoration-stone-300 underline-offset-2 hover:decoration-emerald-400 dark:decoration-stone-600"
+        >
+          api.bible
+        </a>{" "}
+        for making Scripture freely accessible to developers.
+      </p>
+    </div>
   );
 }

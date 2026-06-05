@@ -57,7 +57,7 @@ export function HistoryList() {
         <Sprout className="mx-auto h-8 w-8 text-emerald-500" strokeWidth={1.75} />
         <p className="mt-3 font-medium">No journeys yet</p>
         <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
-          Your walks through Collect → Sort → Decide will appear here.
+          Your walks through Dump → Sort → Decide will appear here.
         </p>
         <Link
           href="/"
