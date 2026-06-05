@@ -170,7 +170,8 @@ function GuidePanel({ onClose }: { onClose: () => void }) {
           </button>
           , paste your key into the{" "}
           <span className="font-medium text-stone-800 dark:text-stone-100">Groq API key</span> field,
-          and press Save. Your key is stored only in this browser and is never shared.
+          and press Save. Your key stays on this device — and, when you’re signed in, it’s
+          saved encrypted to your account so your other apps can use it too.
         </Step>
 
         <Step n={3} Icon={PenLine} title="Write and reflect">

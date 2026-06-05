@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { useTheme } from "next-themes";
 import { Settings as SettingsIcon, Sun, Moon, Monitor, X, Check, Eye, EyeOff } from "lucide-react";
 import { getGroqKey, setGroqKey } from "@/lib/settings";
+import { pushRemoteApiKey } from "@/lib/supabase/apiKeys";
+import { AuthPanel } from "@/components/AuthPanel";
 
 const THEMES = [
   { value: "light", label: "Light", Icon: Sun },
@@ -73,6 +75,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="mt-6 space-y-7">
+          <AuthPanel />
           <ThemeSelector />
           <GroqKeyField />
         </div>
@@ -137,11 +140,20 @@ function GroqKeyField() {
   useEffect(() => setValue(getGroqKey()), []);
   useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current); }, []);
 
+  useEffect(() => {
+    const onSettings = () => setValue(getGroqKey());
+    window.addEventListener("grounded:settings", onSettings);
+    return () => window.removeEventListener("grounded:settings", onSettings);
+  }, []);
+
   const save = () => {
     setGroqKey(value);
     setSaved(true);
     if (savedTimer.current) clearTimeout(savedTimer.current);
     savedTimer.current = setTimeout(() => setSaved(false), 1800);
+    pushRemoteApiKey("groq", value).catch((err) =>
+      console.error("Saving Groq key to account failed:", err),
+    );
   };
 
   return (

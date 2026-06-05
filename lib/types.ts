@@ -37,6 +37,7 @@ export type StepProgress = { active: StepKey; done: Record<StepKey, boolean> };
 export type Reflection = {
   id: string;
   createdAt: number;
+  updatedAt?: number;
   dump: string;
   complexity?: Complexity;
   facts?: FactsResult;

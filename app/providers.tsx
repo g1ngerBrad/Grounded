@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { BreakGlassButton } from "@/components/BreakGlassButton";
 import { EmergencyModal } from "@/components/EmergencyModal";
 import { NewJourneyButton } from "@/components/NewJourneyButton";
+import { SyncProvider } from "@/components/SyncProvider";
 import type { StepProgress } from "@/lib/types";
 
 type EmergencyCtx = { open: () => void; close: () => void; isOpen: boolean };
@@ -42,6 +43,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <EmergencyContext.Provider value={{ open, close, isOpen }}>
         <JourneyProgressContext.Provider value={{ progress, setProgress }}>
           {children}
+          <SyncProvider />
           <NewJourneyButton />
           <BreakGlassButton />
           <EmergencyModal />

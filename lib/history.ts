@@ -33,8 +33,12 @@ export function getReflection(id: string): Reflection | undefined {
 
 export function saveReflection(reflection: Reflection) {
   const items = read().filter((r) => r.id !== reflection.id);
-  items.unshift(reflection);
+  items.unshift({ ...reflection, updatedAt: Date.now() });
   write(items);
+}
+
+export function replaceAll(items: Reflection[]) {
+  write([...items].sort((a, b) => b.createdAt - a.createdAt));
 }
 
 export function deleteReflection(id: string) {
