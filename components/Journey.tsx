@@ -23,6 +23,7 @@ async function generate<T>(
   type: "facts" | "decision",
   text: string,
   complexity: Complexity,
+  extra?: Record<string, unknown>,
 ): Promise<T> {
   const key = getGroqKey();
   const res = await fetch("/api/groq", {
@@ -31,7 +32,7 @@ async function generate<T>(
       "Content-Type": "application/json",
       ...(key ? { "x-groq-key": key } : {}),
     },
-    body: JSON.stringify({ type, text, complexity }),
+    body: JSON.stringify({ type, text, complexity, ...extra }),
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.error ?? "Request failed");
@@ -153,7 +154,7 @@ export function Journey() {
     };
   }, []);
 
-  const runFacts = useCallback(async () => {
+  const runFacts = useCallback(async (): Promise<FactsResult | null> => {
     setFactsLoading(true);
     setFactsError(null);
     try {
@@ -162,31 +163,40 @@ export function Journey() {
       setSortedDump(dump);
       setSortedComplexity(complexity);
       persist({ facts: data });
+      return data;
     } catch (e) {
       setFactsError(e instanceof Error ? e.message : "Something went wrong.");
+      return null;
     } finally {
       setFactsLoading(false);
     }
   }, [dump, complexity, persist]);
 
-  const runDecision = useCallback(async () => {
-    setDecisionLoading(true);
-    setDecisionError(null);
-    try {
-      const data = await generate<DecisionResult>("decision", dump, complexity);
-      setDecision(data);
-      persist({ decision: data });
-    } catch (e) {
-      setDecisionError(e instanceof Error ? e.message : "Something went wrong.");
-    } finally {
-      setDecisionLoading(false);
-    }
-  }, [dump, complexity, persist]);
+  const runDecision = useCallback(
+    async (factsOverride?: FactsResult) => {
+      setDecisionLoading(true);
+      setDecisionError(null);
+      try {
+        const sorted = factsOverride ?? facts;
+        const data = await generate<DecisionResult>("decision", dump, complexity, {
+          facts: sorted?.facts ?? [],
+          assumptions: sorted?.assumptions ?? [],
+        });
+        setDecision(data);
+        persist({ decision: data });
+      } catch (e) {
+        setDecisionError(e instanceof Error ? e.message : "Something went wrong.");
+      } finally {
+        setDecisionLoading(false);
+      }
+    },
+    [dump, complexity, facts, persist],
+  );
 
   const rerunFromDump = useCallback(async () => {
     const hadDecision = !!decision;
-    await runFacts();
-    if (hadDecision) await runDecision();
+    const fresh = await runFacts();
+    if (hadDecision) await runDecision(fresh ?? undefined);
   }, [decision, runFacts, runDecision]);
 
   const hasDump = dump.trim().length > 0;
@@ -322,7 +332,7 @@ export function Journey() {
                 empty="No clearly objective facts found — that itself is worth noticing."
               />
               <Column
-                title="Anxious assumptions"
+                title="Assumptions"
                 tone="assumption"
                 items={facts.assumptions}
                 empty="Nothing flagged as assumption."
@@ -418,7 +428,7 @@ export function Journey() {
             {decision.questions_to_pray?.length > 0 && (
               <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-5 dark:border-amber-900/30 dark:bg-amber-950/20">
                 <h3 className="text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">
-                  To sit with
+                  Before you commit
                 </h3>
                 <ul className="mt-3 space-y-2">
                   {decision.questions_to_pray.map((q, i) => (
