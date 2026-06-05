@@ -451,16 +451,12 @@ function Section({
   stepKey,
   tint,
   eyebrow,
-  title,
-  desc,
   filled,
   children,
 }: {
   stepKey: StepKey;
   tint: keyof typeof EYEBROW_TINT;
   eyebrow: string;
-  title?: string;
-  desc?: string;
   filled?: boolean;
   children: React.ReactNode;
 }) {
@@ -468,8 +464,6 @@ function Section({
     <section data-step={stepKey} data-filled={filled ? "" : undefined}>
       <header className="mb-4 space-y-1">
         <p className={`text-xs font-semibold uppercase tracking-wide ${EYEBROW_TINT[tint]}`}>{eyebrow}</p>
-        {title && <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>}
-        {desc && <p className="text-sm text-stone-500 dark:text-stone-400">{desc}</p>}
       </header>
       {children}
     </section>

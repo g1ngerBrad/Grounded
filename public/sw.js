@@ -1,5 +1,5 @@
-const CACHE = "grounded-v2";
-const PRECACHE = ["/", "/history", "/manifest.webmanifest", "/icon.svg"];
+const CACHE = "grounded-v3";
+const PRECACHE = ["/", "/history", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

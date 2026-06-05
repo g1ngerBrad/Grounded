@@ -15,6 +15,12 @@ const THEMES = [
 export function Settings() {
   const [open, setOpen] = useState(false);
 
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener("grounded:open-settings", onOpen);
+    return () => window.removeEventListener("grounded:open-settings", onOpen);
+  }, []);
+
   return (
     <>
       <button

@@ -115,13 +115,7 @@ export function EmergencyModal() {
             className="absolute flex h-44 w-44 items-center justify-center rounded-full border border-stone-200 bg-white/60 text-sm text-stone-500 dark:border-stone-800 dark:bg-stone-900/60"
             animate={{ scale: [0.9, 1.1, 0.9] }}
             transition={{ duration: 8, ease: "easeInOut", repeat: Infinity }}
-          >
-            <motion.span
-              animate={{ opacity: [1, 0, 1] }}
-              transition={{ duration: 8, ease: "easeInOut", repeat: Infinity }}
-            >
-            </motion.span>
-          </motion.div>
+          />
 
           <div className="relative z-10 max-w-md space-y-6">
             <p className="text-2xl font-medium tracking-tight text-stone-900 dark:text-stone-100">

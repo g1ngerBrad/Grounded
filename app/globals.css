@@ -147,7 +147,8 @@ html.journey-snap [data-step]:not([data-filled])::after {
   animation: splash-enter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.splash-mark svg {
+.splash-mark img {
+  border-radius: 9999px;
   animation: splash-breathe 3s ease-in-out infinite;
 }
 
