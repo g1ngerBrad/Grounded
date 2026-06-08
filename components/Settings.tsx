@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTheme } from "next-themes";
-import { Settings as SettingsIcon, Sun, Moon, Monitor, X, Check, Eye, EyeOff } from "lucide-react";
+import { Settings as SettingsIcon, Sun, Moon, Monitor, X, Check, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { getGroqKey, setGroqKey } from "@/lib/settings";
 import { pushRemoteApiKey } from "@/lib/supabase/apiKeys";
 import { AuthPanel } from "@/components/AuthPanel";
@@ -191,6 +191,19 @@ function GroqKeyField() {
           {saved ? "Saved" : "Save"}
         </button>
       </div>
+      <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
+        No key yet?{" "}
+        <a
+          href="https://console.groq.com/keys"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 font-medium text-emerald-700 transition-colors hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+        >
+          Create a free Groq API key
+          <ExternalLink className="h-3 w-3" strokeWidth={1.9} />
+        </a>
+        .
+      </p>
     </div>
   );
 }

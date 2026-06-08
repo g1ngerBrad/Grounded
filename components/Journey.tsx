@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRight, Loader2, Check, Sparkles, RefreshCw } from "lucide-react";
+import { ArrowRight, Loader2, Check, Sparkles, RefreshCw, ExternalLink } from "lucide-react";
 import { VerseCard } from "@/components/VerseCard";
 import { Select } from "@/components/Select";
 import { scrollToStep } from "@/components/StepRail";
@@ -256,6 +256,10 @@ export function Journey() {
           placeholder="Everything on your mind…"
           className="w-full resize-none rounded-2xl border border-stone-200 bg-white/70 p-4 text-stone-900 shadow-sm outline-none transition-colors placeholder:text-stone-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 dark:border-stone-800 dark:bg-stone-900/50 dark:text-stone-100 dark:focus:border-sky-500 dark:focus:ring-sky-950/40"
         />
+        <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
+          This is powered by AI — the more you dump in here, the more context
+          it has, and the better it can understand your situation and respond.
+        </p>
         <div className="mt-4 space-y-1.5">
           <span
             id="complexity-label"
@@ -566,9 +570,25 @@ function Pending({ label }: { label: string }) {
 }
 
 function ErrorRetry({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const missingKey = message.includes("No Groq API key");
   return (
     <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 text-sm dark:border-rose-900/40 dark:bg-rose-950/20">
       <p className="text-rose-600 dark:text-rose-400">{message}</p>
+      {missingKey && (
+        <p className="mt-1 text-rose-600 dark:text-rose-400">
+          No key yet?{" "}
+          <a
+            href="https://console.groq.com/keys"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 font-medium underline underline-offset-2 hover:text-rose-700 dark:hover:text-rose-300"
+          >
+            Create a free Groq API key
+            <ExternalLink className="h-3 w-3" strokeWidth={1.9} />
+          </a>
+          .
+        </p>
+      )}
       <button
         type="button"
         onClick={onRetry}
