@@ -125,11 +125,17 @@ export function Journey() {
     return () => document.documentElement.classList.remove("journey-snap");
   }, []);
 
-  const hasContent = !!facts || !!decision;
+  const journeyMoving =
+    !!facts ||
+    !!decision ||
+    factsLoading ||
+    decisionLoading ||
+    !!factsError ||
+    !!decisionError;
   useEffect(() => {
-    document.documentElement.classList.toggle("journey-fluid", hasContent);
+    document.documentElement.classList.toggle("journey-fluid", journeyMoving);
     return () => document.documentElement.classList.remove("journey-fluid");
-  }, [hasContent]);
+  }, [journeyMoving]);
 
   useEffect(() => {
     if (createdRef.current) sessionStorage.setItem(RESUME_STEP, active);
@@ -362,7 +368,7 @@ export function Journey() {
 
       <Section stepKey="decide" tint="violet" eyebrow="Step 3 · Decide" filled={decisionLoading || !!decision}>
         {decisionLoading && <Pending label="Laying it out…" />}
-        {decisionError && <ErrorRetry message={decisionError} onRetry={runDecision} />}
+        {decisionError && <ErrorRetry message={decisionError} onRetry={() => runDecision()} />}
         {!decision && !decisionLoading && !decisionError && (
           <RunPrompt
             disabled={!hasDump}
