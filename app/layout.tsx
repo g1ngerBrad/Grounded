@@ -4,6 +4,7 @@ import { Providers } from "./providers";
 import { Navbar } from "@/components/Navbar";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { Splash } from "@/components/Splash";
+import { appleStartupImages } from "@/lib/splashScreens";
 
 export const metadata: Metadata = {
   title: "Grounded",
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Grounded",
+    startupImage: appleStartupImages,
   },
 };
 

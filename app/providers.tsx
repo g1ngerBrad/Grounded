@@ -1,12 +1,17 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { ThemeProvider } from "next-themes";
 import { BreakGlassButton } from "@/components/BreakGlassButton";
 import { EmergencyModal } from "@/components/EmergencyModal";
 import { NewJourneyButton } from "@/components/NewJourneyButton";
-import { SyncProvider } from "@/components/SyncProvider";
 import type { StepProgress } from "@/lib/types";
+
+const SyncProvider = dynamic(
+  () => import("@/components/SyncProvider").then((m) => m.SyncProvider),
+  { ssr: false },
+);
 
 type EmergencyCtx = { open: () => void; close: () => void; isOpen: boolean };
 

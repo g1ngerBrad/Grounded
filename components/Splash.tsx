@@ -31,7 +31,7 @@ export function Splash() {
     >
       <div className="splash-mark">
         <Image
-          src="/icons/icon-512.png"
+          src="/icons/icon-192.png"
           width={96}
           height={96}
           alt=""

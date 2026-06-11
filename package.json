@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "gen:icons": "node scripts/gen-icons.mjs",
+    "gen:splash": "node scripts/gen-splash.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

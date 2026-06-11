@@ -1,0 +1,22 @@
+{
+  "devices": [
+    { "label": "iphone-se", "width": 320, "height": 568, "ratio": 2 },
+    { "label": "iphone-8-6s-7-se2", "width": 375, "height": 667, "ratio": 2 },
+    { "label": "iphone-8plus-7plus-6splus", "width": 414, "height": 736, "ratio": 3 },
+    { "label": "iphone-x-xs-11pro", "width": 375, "height": 812, "ratio": 3 },
+    { "label": "iphone-xr-11", "width": 414, "height": 896, "ratio": 2 },
+    { "label": "iphone-xsmax-11promax", "width": 414, "height": 896, "ratio": 3 },
+    { "label": "iphone-12mini-13mini", "width": 360, "height": 780, "ratio": 3 },
+    { "label": "iphone-12-13-14", "width": 390, "height": 844, "ratio": 3 },
+    { "label": "iphone-14pro-15-16", "width": 393, "height": 852, "ratio": 3 },
+    { "label": "iphone-12-13-promax-14plus", "width": 428, "height": 926, "ratio": 3 },
+    { "label": "iphone-14promax-15promax-16plus", "width": 430, "height": 932, "ratio": 3 },
+    { "label": "iphone-16pro", "width": 402, "height": 874, "ratio": 3 },
+    { "label": "iphone-16promax", "width": 440, "height": 956, "ratio": 3 },
+    { "label": "ipad-mini-air-9_7", "width": 768, "height": 1024, "ratio": 2 },
+    { "label": "ipad-10_2", "width": 810, "height": 1080, "ratio": 2 },
+    { "label": "ipad-air-10_9", "width": 820, "height": 1180, "ratio": 2 },
+    { "label": "ipad-pro-11", "width": 834, "height": 1194, "ratio": 2 },
+    { "label": "ipad-pro-12_9", "width": 1024, "height": 1366, "ratio": 2 }
+  ]
+}
