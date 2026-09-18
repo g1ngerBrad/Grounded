@@ -19,6 +19,24 @@ const COMPLEXITY_OPTIONS: { value: Complexity; label: string }[] = [
 const RESUME_ID = "grounded:resume-id";
 const RESUME_STEP = "grounded:resume-step";
 
+/**
+ * An error from /api/groq. `code` is what the UI branches on — the prose is
+ * only for reading, so wording changes on the server never break the UI.
+ */
+class GenerateError extends Error {
+  constructor(message: string, readonly code?: string) {
+    super(message);
+    this.name = "GenerateError";
+  }
+}
+
+type ShownError = { message: string; code?: string };
+
+const toShownError = (e: unknown): ShownError =>
+  e instanceof GenerateError
+    ? { message: e.message, code: e.code }
+    : { message: e instanceof Error ? e.message : "Something went wrong." };
+
 async function generate<T>(
   type: "facts" | "decision",
   text: string,
@@ -35,7 +53,7 @@ async function generate<T>(
     body: JSON.stringify({ type, text, complexity, ...extra }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error ?? "Request failed");
+  if (!res.ok) throw new GenerateError(json.error ?? "Request failed", json.code);
   return json.data as T;
 }
 
@@ -49,8 +67,8 @@ export function Journey() {
   const [decision, setDecision] = useState<DecisionResult | null>(null);
   const [factsLoading, setFactsLoading] = useState(false);
   const [decisionLoading, setDecisionLoading] = useState(false);
-  const [factsError, setFactsError] = useState<string | null>(null);
-  const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [factsError, setFactsError] = useState<ShownError | null>(null);
+  const [decisionError, setDecisionError] = useState<ShownError | null>(null);
   const [active, setActive] = useState<StepKey>("collect");
   const [sortedDump, setSortedDump] = useState<string | null>(null);
   const [sortedComplexity, setSortedComplexity] = useState<Complexity | null>(null);
@@ -171,7 +189,7 @@ export function Journey() {
       persist({ facts: data });
       return data;
     } catch (e) {
-      setFactsError(e instanceof Error ? e.message : "Something went wrong.");
+      setFactsError(toShownError(e));
       return null;
     } finally {
       setFactsLoading(false);
@@ -191,7 +209,7 @@ export function Journey() {
         setDecision(data);
         persist({ decision: data });
       } catch (e) {
-        setDecisionError(e instanceof Error ? e.message : "Something went wrong.");
+        setDecisionError(toShownError(e));
       } finally {
         setDecisionLoading(false);
       }
@@ -322,7 +340,7 @@ export function Journey() {
 
       <Section stepKey="sort" tint="emerald" eyebrow="Step 2 · Sort" filled={factsLoading || !!facts}>
         {factsLoading && <Pending label="Sorting it out…" />}
-        {factsError && <ErrorRetry message={factsError} onRetry={runFacts} />}
+        {factsError && <ErrorRetry error={factsError} onRetry={runFacts} />}
         {!facts && !factsLoading && !factsError && (
           <RunPrompt
             disabled={!hasDump}
@@ -368,7 +386,7 @@ export function Journey() {
 
       <Section stepKey="decide" tint="violet" eyebrow="Step 3 · Decide" filled={decisionLoading || !!decision}>
         {decisionLoading && <Pending label="Laying it out…" />}
-        {decisionError && <ErrorRetry message={decisionError} onRetry={() => runDecision()} />}
+        {decisionError && <ErrorRetry error={decisionError} onRetry={() => runDecision()} />}
         {!decision && !decisionLoading && !decisionError && (
           <RunPrompt
             disabled={!hasDump}
@@ -575,12 +593,12 @@ function Pending({ label }: { label: string }) {
   );
 }
 
-function ErrorRetry({ message, onRetry }: { message: string; onRetry: () => void }) {
-  const missingKey = message.includes("No Groq API key");
+function ErrorRetry({ error, onRetry }: { error: ShownError; onRetry: () => void }) {
+  const needsKey = error.code === "no_key" || error.code === "invalid_key";
   return (
     <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 text-sm dark:border-rose-900/40 dark:bg-rose-950/20">
-      <p className="text-rose-600 dark:text-rose-400">{message}</p>
-      {missingKey && (
+      <p className="text-rose-600 dark:text-rose-400">{error.message}</p>
+      {needsKey && (
         <p className="mt-1 text-rose-600 dark:text-rose-400">
           No key yet?{" "}
           <a

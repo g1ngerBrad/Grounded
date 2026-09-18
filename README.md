@@ -50,7 +50,7 @@ cp .env.example .env.development.local
 | Variable | Purpose |
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase project (auth + sync). Safe to expose; protected by row-level security. |
-| `GROQ_API_KEY` / `GROQ_MODEL` | Server-side Groq access. Users may also supply their own key in Settings. |
+| `GROQ_API_KEY` / `GROQ_MODEL` | Server-side Groq access. Users may also supply their own key in Settings. `GROQ_MODEL` is optional — leave it unset and the app picks the best model your account can reach, skipping any Groq has decommissioned (see `lib/groqModels.ts`). |
 | `BIBLE_API_BASE` / `BIBLE_API_KEY` / `BIBLE_ID` | Scripture provider (API.Bible). |
 | `NEXT_PUBLIC_BIBLE_*` | Public translation metadata shown in the UI (name, copyright, publisher). |
 

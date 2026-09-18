@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import Groq from "groq-sdk";
+import Groq, { APIError } from "groq-sdk";
 import { fetchVerse, type Verse } from "@/lib/bible";
+import { completeJson, NoUsableModelError } from "@/lib/groqModels";
 
 export const runtime = "nodejs";
 
-const MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 const MAX_INPUT_CHARS = 4000;
+
+type ErrorCode =
+  | "no_key"
+  | "invalid_key"
+  | "bad_request"
+  | "rate_limited"
+  | "no_model"
+  | "bad_response"
+  | "upstream";
+
+const fail = (code: ErrorCode, error: string, status: number) =>
+  NextResponse.json({ error, code }, { status });
 
 type PromptType = "facts" | "decision";
 type Complexity = "simple" | "moderate" | "complex";
@@ -45,9 +57,10 @@ Respond ONLY with valid JSON, no markdown, matching:
 export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("x-groq-key")?.trim() || process.env.GROQ_API_KEY;
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "No Groq API key. Add one in Settings, or configure the server." },
-      { status: 401 }
+    return fail(
+      "no_key",
+      "No Groq API key. Add one in Settings, or configure the server.",
+      401,
     );
   }
 
@@ -55,7 +68,7 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return fail("bad_request", "Invalid JSON body.", 400);
   }
 
   const { type, text, complexity, facts, assumptions } = (body ?? {}) as {
@@ -70,10 +83,10 @@ export async function POST(req: NextRequest) {
     Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim().length > 0) : [];
 
   if (!type || !["facts", "decision"].includes(type)) {
-    return NextResponse.json({ error: "Invalid prompt type." }, { status: 400 });
+    return fail("bad_request", "Invalid prompt type.", 400);
   }
   if (typeof text !== "string" || text.trim().length === 0) {
-    return NextResponse.json({ error: "Please write something first." }, { status: 400 });
+    return fail("bad_request", "Please write something first.", 400);
   }
 
   const level: Complexity =
@@ -99,8 +112,7 @@ export async function POST(req: NextRequest) {
   const groq = new Groq({ apiKey });
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: MODEL,
+    const { content: raw, model } = await completeJson(groq, {
       temperature: 0.2,
       max_tokens: 900,
       response_format: { type: "json_object" },
@@ -110,7 +122,6 @@ export async function POST(req: NextRequest) {
       ],
     });
 
-    const raw = completion.choices[0]?.message?.content ?? "";
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
@@ -120,10 +131,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!parsed) {
-      return NextResponse.json(
-        { error: "Couldn't read the response. Please try again." },
-        { status: 502 }
-      );
+      return fail("bad_response", "Couldn't read the response. Please try again.", 502);
     }
 
     const data = parsed as { verse?: Verse; title?: string };
@@ -138,12 +146,37 @@ export async function POST(req: NextRequest) {
       data.title = firstLine.length > 60 ? `${firstLine.slice(0, 60).trimEnd()}…` : firstLine;
     }
 
-    return NextResponse.json({ type, data });
+    return NextResponse.json({ type, data, model });
   } catch (err) {
     console.error("Groq request failed:", err);
-    return NextResponse.json(
-      { error: "Something went wrong reaching the assistant." },
-      { status: 502 }
-    );
+
+    // Every model in the chain is gone — a config problem, not a blip, so say
+    // so plainly instead of inviting the user to retry into the same wall.
+    if (err instanceof NoUsableModelError) {
+      return fail(
+        "no_model",
+        "No AI model is currently available on your Groq account. If this persists, the app's model list may need updating.",
+        503,
+      );
+    }
+
+    if (err instanceof APIError) {
+      if (err.status === 401 || err.status === 403) {
+        return fail(
+          "invalid_key",
+          "Groq rejected your API key. Check it in Settings, or create a new one.",
+          401,
+        );
+      }
+      if (err.status === 429) {
+        return fail(
+          "rate_limited",
+          "Groq is rate-limiting this key. Wait a moment and try again.",
+          429,
+        );
+      }
+    }
+
+    return fail("upstream", "Something went wrong reaching the assistant.", 502);
   }
 }
